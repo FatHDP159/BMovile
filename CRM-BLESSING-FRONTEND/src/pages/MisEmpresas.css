@@ -1,0 +1,538 @@
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.mis-empresas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.mis-empresas-header h1 {
+    font-size: 22px;
+    color: #1a1a2e;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.total-badge {
+    font-size: 12px;
+    background-color: #eef0fb;
+    color: #3949ab;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────────────────── */
+.filtros-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 28px;
+    align-items: center;
+}
+
+.filtros-bar input,
+.filtros-bar select {
+    padding: 9px 13px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    font-size: 13px;
+    outline: none;
+    background-color: #fff;
+    color: #333;
+    transition: border-color 0.2s;
+}
+
+.filtros-bar input:focus,
+.filtros-bar select:focus {
+    border-color: #3949ab;
+}
+
+.filtros-bar input.search-input {
+    width: 260px;
+}
+
+.filtros-lineas {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #888;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+
+.filtros-lineas input {
+    width: 70px;
+    border: none !important;
+    padding: 2px 4px !important;
+    font-size: 13px;
+    outline: none;
+    text-align: center;
+    color: #333;
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+.empresas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 20px;
+}
+
+/* ── Tarjeta ─────────────────────────────────────────────────────────────── */
+.empresa-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #eeeeee;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.25s, transform 0.25s;
+}
+
+.empresa-card:hover {
+    box-shadow: 0 8px 28px rgba(57, 73, 171, 0.12);
+    transform: translateY(-2px);
+}
+
+/* Header */
+.card-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d5e 100%);
+    padding: 16px 18px 14px;
+}
+
+.card-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.card-ruc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+.card-fecha-asig {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.08);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.card-razon-social {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.35;
+    margin-bottom: 8px;
+}
+
+.card-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.card-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+}
+
+.card-lineas-badge {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+/* Body */
+.card-body {
+    padding: 16px 18px 8px;
+    flex: 1;
+    min-height: 150px;
+}
+
+.contacto-slide {
+    animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.contacto-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.contacto-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #eef0fb;
+    color: #3949ab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.contacto-info-main {
+    flex: 1;
+}
+
+.contacto-nombre {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1.2;
+}
+
+.contacto-cargo {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.contacto-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.contacto-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: #555;
+}
+
+.contacto-row-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 10px;
+    margin-top: 1px;
+}
+
+.icon-dni   { background: #f3f4f6; color: #6b7280; }
+.icon-phone { background: #ecfdf5; color: #059669; }
+.icon-email { background: #eff6ff; color: #3b82f6; }
+
+.contacto-valores-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+}
+
+.contacto-chip {
+    background: #f7f7f7;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #444;
+}
+
+.sin-contactos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    gap: 6px;
+    color: #ccc;
+    font-size: 13px;
+}
+
+/* Dots */
+.contacto-dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 0 4px;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dot.active {
+    background: #3949ab;
+    width: 18px;
+    border-radius: 3px;
+}
+
+/* Footer */
+.card-footer {
+    padding: 12px 18px;
+    border-top: 1px solid #f5f5f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-nav {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-nav {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e8e8e8;
+    background: #fafafa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.btn-nav:hover:not(:disabled) {
+    background: #1a1a2e;
+    color: #fff;
+    border-color: #1a1a2e;
+}
+
+.btn-nav:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-contacto {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #e0e0e0;
+    background: #fff;
+    color: #444;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.btn-contacto:hover {
+    border-color: #1a1a2e;
+    color: #1a1a2e;
+}
+
+.btn-tipificar {
+    padding: 7px 18px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #3949ab, #1a237e);
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: opacity 0.2s;
+}
+
+.btn-tipificar:hover {
+    opacity: 0.88;
+}
+
+/* ── Paginación ──────────────────────────────────────────────────────────── */
+.paginacion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 28px;
+    font-size: 13px;
+    color: #888;
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+.loading-cards {
+    text-align: center;
+    padding: 80px;
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* ── Modal Tipificar ─────────────────────────────────────────────────────── */
+.tipificaciones-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.btn-tipificacion {
+    padding: 11px 10px;
+    border-radius: 10px;
+    border: 1.5px solid #eee;
+    background: #fafafa;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: #444;
+    transition: all 0.18s;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.btn-tipificacion:hover {
+    border-color: #3949ab;
+    background: #eef0fb;
+    color: #3949ab;
+}
+
+.btn-tipificacion.selected {
+    border-color: #3949ab;
+    background: linear-gradient(135deg, #3949ab, #1a237e);
+    color: #fff;
+}
+
+/* Formulario oportunidad */
+.oportunidad-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 16px;
+}
+
+.operadores-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.operador-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.operador-field label {
+    font-size: 11px;
+    color: #999;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.operador-field input {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    font-size: 13px;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.operador-field input:focus {
+    border-color: #3949ab;
+}
+
+/* ── Detalle líneas ──────────────────────────────────────────────────────── */
+.card-lineas-detalle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.linea-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+/*Colores de letras de lineas*/
+.linea-chip.entel    { background: #e8ecf5; color: #1c1cbe; }
+.linea-chip.claro    { background: #fce4ec; color: #c62828; }
+.linea-chip.movistar { background: #e4f8fc; color: #0d93c4; }
+.linea-chip.otros    { background: #f3e5f5; color: #6a1b9a; }
+
+/* ── Salesforce info ─────────────────────────────────────────────────────── */
+.card-salesforce {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+}
+
+.sf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+}
+
+.sf-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.sf-label {
+    color: rgba(255,255,255,0.55);
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.sf-value {
+    color: rgba(255,255,255,0.9);
+}
+
+.sf-sustento {
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+
+.sf-sustento.si { background: #e8f5e9; color: #2e7d32; }
+.sf-sustento.no { background: #fce8e6; color: #c62828; }

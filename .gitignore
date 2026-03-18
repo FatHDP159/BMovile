@@ -1,0 +1,8 @@
+# Backend
+CRM-BLESSING-BACKEND/node_modules/
+CRM-BLESSING-BACKEND/.env
+
+# Frontend
+CRM-BLESSING-FRONTEND/node_modules/
+CRM-BLESSING-FRONTEND/dist/
+CRM-BLESSING-FRONTEND/.env

@@ -1,0 +1,37 @@
+.sol-estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sol-pendientes-badge {
+    background: #fff8e1;
+    color: #f57f17;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 1px solid #f57f17;
+}
+
+.btn-sol {
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+}
+.btn-sol:hover    { opacity: 0.8; }
+.btn-sol.aprobar  { background: #e8f5e9; color: #2e7d32; }
+.btn-sol.rechazar { background: #fce8e6; color: #c62828; }

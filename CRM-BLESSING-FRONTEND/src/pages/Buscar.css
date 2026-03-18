@@ -1,0 +1,131 @@
+.buscar-container {
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.buscar-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+}
+
+.buscar-box h2 { margin: 0 0 6px; font-size: 16px; color: #1a1a2e; }
+.buscar-box p  { margin: 0 0 20px; font-size: 13px; color: #888; }
+
+.buscar-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.buscar-input {
+    flex: 1;
+    font-size: 16px !important;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.buscar-error { color: #c62828; font-size: 12px; margin-top: 8px; }
+.buscar-exito { color: #2e7d32; font-size: 12px; margin-top: 8px; font-weight: 600; }
+
+/* Resultado */
+.buscar-resultado {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+}
+
+.resultado-header { margin-bottom: 16px; }
+
+.resultado-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.resultado-datos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.resultado-row {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 13px;
+}
+
+.resultado-label {
+    color: #999;
+    min-width: 110px;
+    font-size: 12px;
+}
+
+.resultado-value {
+    color: #1a1a2e;
+    font-weight: 600;
+}
+
+.resultado-descripcion {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+}
+
+.resultado-bloqueado {
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #fce8e6;
+    color: #c62828;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.resultado-bloqueado.amarillo {
+    background: #fff8e1;
+    color: #f57f17;
+}
+
+/* Indicaciones */
+.buscar-indicaciones {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.indicacion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #555;
+}
+
+.ind-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+}

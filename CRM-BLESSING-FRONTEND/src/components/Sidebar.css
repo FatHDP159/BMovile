@@ -1,0 +1,131 @@
+.sidebar {
+    width: 180px;
+    height: 100vh;
+    background-color: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100;
+}
+
+.sidebar-logo {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo h2 {
+    color: #fff;
+    font-size: 20px;
+    margin: 0;
+}
+
+.sidebar-logo p {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 16px 0;
+    list-style: none;
+    margin: 0;
+}
+
+.sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.sidebar-menu li a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.sidebar-menu li a.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-left: 3px solid #fff;
+}
+
+.sidebar-menu li a svg {
+    width: 16px;
+}
+
+.sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.sidebar-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.sidebar-user-info p {
+    margin: 0;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.sidebar-user-info span {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    text-transform: capitalize;
+}
+
+.sidebar-logout {
+    width: 100%;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.sidebar-logout:hover {
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.layout-container {
+    display: flex;
+}
+
+.layout-content {
+    margin-left: 200px;
+    flex: 1;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+    padding: 24px;
+}

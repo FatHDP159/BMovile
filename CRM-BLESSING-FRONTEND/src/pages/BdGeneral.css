@@ -1,0 +1,116 @@
+.search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.search-input {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    outline: none;
+    width: 300px;
+}
+
+.search-input:focus {
+    border-color: #1a1a2e;
+}
+
+.filter-select {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    outline: none;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.badge-disponible {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-asignada {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.badge-trabajada {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.badge-descartada {
+    background-color: #fce8e6;
+    color: #c62828;
+}
+
+.contactos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contacto-item {
+    font-size: 12px;
+    color: #555;
+}
+
+.btn-asignar {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.btn-desasignar {
+    background-color: #fce8e6;
+    color: #c62828;
+}
+
+.import-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-import {
+    padding: 10px 20px;
+    background-color: #2e7d32;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.btn-import:hover {
+    background-color: #1b5e20;
+}
+
+.import-result {
+    font-size: 13px;
+    color: #2e7d32;
+    font-weight: 500;
+}
+.btn-export {
+    padding: 10px 20px;
+    background-color: #1b5e20;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.btn-export:hover {
+    background-color: #145214;
+}

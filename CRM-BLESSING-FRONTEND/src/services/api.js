@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'https://crm-blessing-backend.onrender.com/',
 });
 
 // Agregar token automáticamente en cada request
@@ -25,7 +25,7 @@ api.interceptors.response.use(
                 const refreshToken = localStorage.getItem('refreshToken');
                 if (!refreshToken) throw new Error('No refresh token');
 
-                const res = await axios.post('http://localhost:3000/api/auth/refresh', { refreshToken });
+                const res = await axios.post('https://crm-blessing-backend.onrender.com/', { refreshToken });
                 const newToken = res.data.accessToken;
 
                 localStorage.setItem('accessToken', newToken);

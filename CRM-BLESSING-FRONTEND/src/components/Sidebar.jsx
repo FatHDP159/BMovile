@@ -48,7 +48,7 @@ const Sidebar = () => {
     return (
         <div className="sidebar">
             <div className="sidebar-logo">
-                <h2>CRM Blessing</h2>
+                <h2>CRM B-Movile</h2>
                 <p>Panel de control</p>
             </div>
 

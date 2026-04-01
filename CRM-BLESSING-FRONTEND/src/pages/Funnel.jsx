@@ -17,7 +17,7 @@ const ESTADOS = [
 
 const ORDEN_ESTADOS = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
 const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
-const SEGMENTOS = ['Micro', 'Pequeña Empresa', 'Mediana Empresa', 'Gran Empresa', 'Pyme'];
+const SEGMENTOS = ['Micro', 'Pyme' , 'Mayores' , 'Empresas', 'Gobierno'];
 
 const fmt = (fecha) => {
     if (!fecha) return '—';

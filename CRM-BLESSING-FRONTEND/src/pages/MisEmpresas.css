@@ -441,37 +441,36 @@
     border-top: 1px solid #f0f0f0;
     padding-top: 16px;
 }
-
+/*//////////////////////////////////////*/
 .operadores-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    /* Cambiamos a minmax para que puedan encogerse más allá del contenido si es necesario */
+    grid-template-columns: repeat(5, minmax(0, 1fr)); 
     gap: 8px;
+    width: 100%; /* Asegura que ocupe el 100% */
+    box-sizing: border-box;
 }
 
 .operador-field {
     display: flex;
     flex-direction: column;
     gap: 4px;
-}
-
-.operador-field label {
-    font-size: 11px;
-    color: #999;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-align: center;
+    min-width: 0; /* CRÍTICO: Permite que el flex item se encoja por debajo de su tamaño de contenido */
 }
 
 .operador-field input {
-    padding: 8px 10px;
+    width: 100%; /* Asegura que el input no exceda a su padre */
+    padding: 8px 4px; /* Reducimos un poco el padding lateral para ganar espacio */
     border-radius: 8px;
     border: 1px solid #e0e0e0;
     font-size: 13px;
     outline: none;
     text-align: center;
     transition: border-color 0.2s;
-}
+    box-sizing: border-box; /* Asegura que el padding no sume al ancho total */
+} 
+
+/*//////////////////////////////////////*/
 
 .operador-field input:focus {
     border-color: #3949ab;

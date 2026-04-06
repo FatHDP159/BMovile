@@ -6,12 +6,11 @@ import {
     faHome, faUsers, faDatabase, faClipboardList,
     faFunnelDollar, faCalendarAlt, faMagnifyingGlass,
     faFileCircleCheck, faRightFromBracket, faThumbtack,
-    faBell, faCheckDouble, faTrash,
+    faBell, faCheckDouble, faTrash, faGear, faCircleInfo,
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Sidebar.css';
 
-/* ── Notificaciones inline ─────────────────────────────────────────────── */
 const ICONOS_TIPO = {
     actividad_proxima: '🔔',
     actividad_vencida: '⚠️',
@@ -32,7 +31,6 @@ const fmtTiempo = (fecha) => {
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
-/* ── Sidebar ───────────────────────────────────────────────────────────── */
 const Sidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -40,14 +38,15 @@ const Sidebar = () => {
     const [expandido, setExpandido] = useState(false);
     const [fijado, setFijado] = useState(() => localStorage.getItem('sidebar_fijado') === 'true');
     const [notifAbierto, setNotifAbierto] = useState(false);
+    const [userMenuAbierto, setUserMenuAbierto] = useState(false);
     const [notifs, setNotifs] = useState([]);
     const [countNotif, setCountNotif] = useState(0);
     const timeoutRef = useRef();
     const intervalRef = useRef();
+    const userMenuRef = useRef();
 
     const abierto = expandido || fijado;
 
-    /* hover */
     const handleMouseEnter = () => {
         if (fijado) return;
         clearTimeout(timeoutRef.current);
@@ -61,7 +60,6 @@ const Sidebar = () => {
         }, 250);
     };
 
-    /* pin */
     const toggleFijado = () => {
         const v = !fijado;
         setFijado(v);
@@ -69,15 +67,24 @@ const Sidebar = () => {
         localStorage.setItem('sidebar_fijado', v);
     };
 
-    /* notificaciones */
+    // Cerrar user menu al hacer click fuera
+    useEffect(() => {
+        const handler = (e) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setUserMenuAbierto(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    // Notificaciones
     const cargarCount = useCallback(async () => {
-        try { const r = await api.get('/notificaciones/count'); setCountNotif(r.data.count); }
-        catch { }
+        try { const r = await api.get('/notificaciones/count'); setCountNotif(r.data.count); } catch { }
     }, []);
 
     const cargarNotifs = useCallback(async () => {
-        try { const r = await api.get('/notificaciones'); setNotifs(r.data); }
-        catch { }
+        try { const r = await api.get('/notificaciones'); setNotifs(r.data); } catch { }
     }, []);
 
     useEffect(() => {
@@ -89,13 +96,11 @@ const Sidebar = () => {
     const toggleNotif = () => {
         if (!notifAbierto) cargarNotifs();
         setNotifAbierto(v => !v);
+        setUserMenuAbierto(false);
     };
 
     const handleNotifClick = async (n) => {
-        if (!n.leida) {
-            await api.patch(`/notificaciones/${n._id}/leer`);
-            cargarCount(); cargarNotifs();
-        }
+        if (!n.leida) { await api.patch(`/notificaciones/${n._id}/leer`); cargarCount(); cargarNotifs(); }
         if (n.link) { navigate(n.link); setNotifAbierto(false); }
     };
 
@@ -146,10 +151,17 @@ const Sidebar = () => {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            {/* Logo */}
+            {/* Logo + Pin */}
             <div className="sb__logo">
                 <div className="sb__logo-mark">B</div>
                 <span className="sb__logo-name">B-Movile</span>
+                <button
+                    className={`sb__pin-btn ${fijado ? 'sb__pin-btn--active' : ''}`}
+                    onClick={toggleFijado}
+                    title={fijado ? 'Desanclar panel' : 'Anclar panel'}
+                >
+                    <FontAwesomeIcon icon={faThumbtack} />
+                </button>
             </div>
 
             {/* Nav */}
@@ -213,28 +225,44 @@ const Sidebar = () => {
                     )}
                 </div>
 
-                {/* Pin */}
-                <button className={`sb__item sb__item--btn ${fijado ? 'sb__item--pin-active' : ''}`} onClick={toggleFijado}>
-                    <span className="sb__item-icon"><FontAwesomeIcon icon={faThumbtack} style={{ transform: fijado ? 'rotate(45deg)' : 'none', transition: '0.2s' }} /></span>
-                    <span className="sb__item-label">{fijado ? 'Desfijar' : 'Fijar sidebar'}</span>
-                    {!abierto && <span className="sb__tip">{fijado ? 'Desfijar' : 'Fijar'}</span>}
-                </button>
+                {/* Avatar + menú usuario */}
+                <div className="sb__user-wrap" ref={userMenuRef}>
+                    <button
+                        className="sb__user-btn"
+                        onClick={() => { setUserMenuAbierto(v => !v); setNotifAbierto(false); }}
+                    >
+                        <div className="sb__avatar">{user?.nombre_user?.charAt(0).toUpperCase()}</div>
+                        <div className="sb__user-info">
+                            <p className="sb__user-name">{user?.nombre_user}</p>
+                            <span className="sb__user-rol">{user?.rol_user}</span>
+                        </div>
+                        {!abierto && <span className="sb__tip">{user?.nombre_user}</span>}
+                    </button>
 
-                {/* Usuario */}
-                <div className="sb__user">
-                    <div className="sb__avatar">{user?.nombre_user?.charAt(0).toUpperCase()}</div>
-                    <div className="sb__user-info">
-                        <p className="sb__user-name">{user?.nombre_user}</p>
-                        <span className="sb__user-rol">{user?.rol_user}</span>
-                    </div>
+                    {userMenuAbierto && (
+                        <div className="sb__user-menu">
+                            <div className="sb__user-menu-header">
+                                <div className="sb__user-menu-avatar">{user?.nombre_user?.charAt(0).toUpperCase()}</div>
+                                <div>
+                                    <p className="sb__user-menu-name">{user?.nombre_user}</p>
+                                    <p className="sb__user-menu-email">{user?.correo_user || user?.rol_user}</p>
+                                </div>
+                            </div>
+                            <div className="sb__user-menu-divider" />
+                            <button className="sb__user-menu-item">
+                                <FontAwesomeIcon icon={faGear} /> Ajustes
+                            </button>
+                            <button className="sb__user-menu-item">
+                                <FontAwesomeIcon icon={faCircleInfo} /> Ayuda
+                            </button>
+                            <div className="sb__user-menu-divider" />
+                            <button className="sb__user-menu-item sb__user-menu-item--logout" onClick={handleLogout}>
+                                <FontAwesomeIcon icon={faRightFromBracket} /> Cerrar sesión
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                {/* Logout */}
-                <button className="sb__item sb__item--btn sb__item--logout" onClick={handleLogout}>
-                    <span className="sb__item-icon"><FontAwesomeIcon icon={faRightFromBracket} /></span>
-                    <span className="sb__item-label">Cerrar sesión</span>
-                    {!abierto && <span className="sb__tip">Cerrar sesión</span>}
-                </button>
             </div>
         </aside>
     );

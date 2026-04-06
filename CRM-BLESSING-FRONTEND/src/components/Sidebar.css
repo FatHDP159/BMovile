@@ -2,13 +2,13 @@
 :root {
     --sb-bg: #0f0f17;
     --sb-border: rgba(255, 255, 255, 0.07);
-    --sb-accent: #3949ab;
-    --sb-accent-glow: rgba(57, 73, 171, 0.25);
+    --sb-accent: #1D2558;
+    --sb-accent-light: #2d3a8c;
+    --sb-active-bg: rgba(29, 37, 88, 0.4);
+    --sb-active-text: #7b8ff7;
     --sb-text: rgba(255, 255, 255, 0.45);
     --sb-text-hover: rgba(255, 255, 255, 0.88);
     --sb-hover: rgba(255, 255, 255, 0.06);
-    --sb-active-bg: rgba(57, 73, 171, 0.22);
-    --sb-active-text: #7b8ff7;
     --sb-w-closed: 64px;
     --sb-w-open: 230px;
     --sb-ease: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -25,8 +25,8 @@
     overflow: hidden;
     transition: width var(--sb-ease);
     flex-shrink: 0;
-    position: relative;
     z-index: 100;
+    position: relative;
 }
 
 .sb--open {
@@ -37,11 +37,13 @@
 .sb__logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 18px 14px 14px;
+    gap: 10px;
+    padding: 16px 12px;
     border-bottom: 1px solid var(--sb-border);
     overflow: hidden;
     flex-shrink: 0;
+    position: relative;
+    min-height: 60px;
 }
 
 .sb__logo-mark {
@@ -50,30 +52,60 @@
     border-radius: 10px;
     background: #1D2558;
     color: #fff;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 900;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(57, 73, 171, 0.4);
+    box-shadow: 0 4px 14px rgba(29, 37, 88, 0.5);
     letter-spacing: -1px;
 }
 
 .sb__logo-name {
     font-size: 14px;
     font-weight: 800;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
     opacity: 0;
     transform: translateX(-10px);
     transition: opacity var(--sb-ease), transform var(--sb-ease);
-    letter-spacing: 0.3px;
 }
 
 .sb--open .sb__logo-name {
     opacity: 1;
     transform: translateX(0);
+}
+
+/* Pin — aparece solo cuando el sidebar está abierto */
+.sb__pin-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 6px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s, transform 0.2s, opacity var(--sb-ease);
+    opacity: 0;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.sb--open .sb__pin-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sb__pin-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sb__pin-btn--active {
+    color: #7b8ff7 !important;
+    transform: rotate(45deg);
 }
 
 /* ── Nav ────────────────────────────────────────────────────────────────── */
@@ -82,7 +114,7 @@
     padding: 10px 8px;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -91,7 +123,7 @@
     width: 0;
 }
 
-/* ── Item base ──────────────────────────────────────────────────────────── */
+/* ── Item ───────────────────────────────────────────────────────────────── */
 .sb__item {
     position: relative;
     display: flex;
@@ -102,10 +134,10 @@
     color: var(--sb-text);
     text-decoration: none;
     transition: background 0.15s, color 0.15s;
-    overflow: visible;
     white-space: nowrap;
     cursor: pointer;
     min-height: 44px;
+    overflow: visible;
 }
 
 .sb__item:hover {
@@ -118,11 +150,13 @@
     color: var(--sb-active-text) !important;
 }
 
-.sb__item--active .sb__item-icon {
-    color: var(--sb-active-text);
+.sb__item--btn {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
 }
 
-/* ── Icono ──────────────────────────────────────────────────────────────── */
 .sb__item-icon {
     width: 22px;
     height: 22px;
@@ -134,16 +168,13 @@
     position: relative;
 }
 
-/* ── Label ──────────────────────────────────────────────────────────────── */
 .sb__item-label {
-    font-size: 12.5px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
+    font-size: 13px;
+    font-weight: 500;
     opacity: 0;
     transform: translateX(-8px);
     transition: opacity var(--sb-ease), transform var(--sb-ease);
     pointer-events: none;
-    text-transform: uppercase;
     color: inherit;
 }
 
@@ -156,7 +187,7 @@
 /* ── Tooltip ────────────────────────────────────────────────────────────── */
 .sb__tip {
     position: fixed;
-    left: calc(var(--sb-w-closed) + 8px);
+    left: calc(var(--sb-w-closed) + 10px);
     background: #1e1e30;
     color: rgba(255, 255, 255, 0.88);
     font-size: 12px;
@@ -171,8 +202,6 @@
     z-index: 999;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
 }
 
 .sb:not(.sb--open) .sb__item:hover .sb__tip {
@@ -226,11 +255,9 @@
     align-items: center;
     padding: 12px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
     flex-shrink: 0;
 }
 
@@ -286,11 +313,11 @@
 }
 
 .sb__notif-item--unread {
-    background: rgba(57, 73, 171, 0.12);
+    background: rgba(29, 37, 88, 0.25);
 }
 
 .sb__notif-item--unread:hover {
-    background: rgba(57, 73, 171, 0.18);
+    background: rgba(29, 37, 88, 0.4);
 }
 
 .sb__notif-icon {
@@ -345,43 +372,47 @@
     border-top: 1px solid var(--sb-border);
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
 }
 
-/* Pin activo */
-.sb__item--pin-active {
-    color: var(--sb-active-text) !important;
+/* ── User btn ───────────────────────────────────────────────────────────── */
+.sb__user-wrap {
+    position: relative;
 }
 
-/* Botón base */
-.sb__item--btn {
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
-}
-
-/* Usuario */
-.sb__user {
+.sb__user-btn {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;
-    overflow: hidden;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background 0.15s;
+    overflow: visible;
+    position: relative;
+}
+
+.sb__user-btn:hover {
+    background: var(--sb-hover);
 }
 
 .sb__avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
     background: #1D2558;
     color: #fff;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(29, 37, 88, 0.5);
 }
 
 .sb__user-info {
@@ -397,29 +428,103 @@
 }
 
 .sb__user-name {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 130px;
 }
 
 .sb__user-rol {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.35);
     text-transform: capitalize;
-    letter-spacing: 0.3px;
 }
 
-/* Logout */
-.sb__item--logout {
-    color: rgba(239, 83, 80, 0.55) !important;
+/* ── User menu popup ─────────────────────────────────────────────────────── */
+.sb__user-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: 240px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    border: 1px solid #eee;
+    overflow: hidden;
+    z-index: 300;
 }
 
-.sb__item--logout:hover {
-    background: rgba(239, 83, 80, 0.1) !important;
-    color: rgba(239, 83, 80, 0.9) !important;
+.sb__user-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.sb__user-menu-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #1D2558;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sb__user-menu-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0 0 2px;
+}
+
+.sb__user-menu-email {
+    font-size: 11px;
+    color: #888;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+.sb__user-menu-divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 2px 0;
+}
+
+.sb__user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    width: 100%;
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.sb__user-menu-item:hover {
+    background: #f5f5f5;
+}
+
+.sb__user-menu-item--logout {
+    color: #c62828;
+}
+
+.sb__user-menu-item--logout:hover {
+    background: #fce8e6;
 }

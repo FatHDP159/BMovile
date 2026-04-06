@@ -65,7 +65,7 @@ const BdGeneral = () => {
         } finally {
             setLoading(false);
         }
-    }, [busqueda, filtroEstado, filtroSegmento, filtroOperador]);
+    }, [busqueda, filtroEstado, filtroSegmento, filtroOperador, filtroConsultor, filtroFechaAsig, filtroFechaDesasig]);
 
     const cargarAsesores = async () => {
         try {
@@ -179,8 +179,8 @@ const BdGeneral = () => {
             const datos = res.data.empresas;
             const filas = [
                 ['RUC', 'Razón Social', 'Distrito', 'Segmento', 'Total Líneas', 'Claro', 'Movistar', 'Entel', 'Otros',
-                 'Consultor SF', 'Fecha Asig. SF', 'Fecha Desasig. SF', 'Estado', 'Asesor Asignado',
-                 'Contacto Nombre', 'Contacto DNI', 'Contacto Cargo', 'Teléfonos', 'Correos']
+                    'Consultor SF', 'Fecha Asig. SF', 'Fecha Desasig. SF', 'Estado', 'Asesor Asignado',
+                    'Contacto Nombre', 'Contacto DNI', 'Contacto Cargo', 'Teléfonos', 'Correos']
             ];
 
             datos.forEach(e => {

@@ -67,7 +67,6 @@ const Sidebar = () => {
         localStorage.setItem('sidebar_fijado', v);
     };
 
-    // Cerrar user menu al hacer click fuera
     useEffect(() => {
         const handler = (e) => {
             if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
@@ -78,7 +77,6 @@ const Sidebar = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    // Notificaciones
     const cargarCount = useCallback(async () => {
         try { const r = await api.get('/notificaciones/count'); setCountNotif(r.data.count); } catch { }
     }, []);
@@ -127,7 +125,6 @@ const Sidebar = () => {
         ],
         supervisor: [
             { path: '/dashboard', label: 'Dashboard', icon: faHome },
-            { path: '/bd-general', label: 'Base General', icon: faDatabase },
             { path: '/funnel-supervisor', label: 'Funnel', icon: faFunnelDollar },
             { path: '/gestiones-supervisor', label: 'Gestiones', icon: faClipboardList },
             { path: '/solicitudes', label: 'Solicitudes', icon: faFileCircleCheck },

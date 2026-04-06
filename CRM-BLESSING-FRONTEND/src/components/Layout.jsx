@@ -1,5 +1,5 @@
 import Sidebar from './Sidebar';
-import Notificaciones from './Notificaciones';
+import Notificaciones from './notificaciones';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 import './Layout.css';

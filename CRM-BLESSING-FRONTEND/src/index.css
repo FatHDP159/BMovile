@@ -270,3 +270,100 @@ body.theme-dark {
         transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     }
 }
+
+/* ── Badges en modo oscuro ───────────────────────────────────────────────── */
+body.theme-dark {
+
+    .badge-activo {
+        background: rgba(46, 125, 50, 0.25) !important;
+        color: #81c784 !important;
+        border: 1px solid rgba(46, 125, 50, 0.4) !important;
+    }
+
+    .badge-inactivo {
+        background: rgba(198, 40, 40, 0.25) !important;
+        color: #ef9a9a !important;
+        border: 1px solid rgba(198, 40, 40, 0.4) !important;
+    }
+
+    .badge-suspendido {
+        background: rgba(230, 81, 0, 0.25) !important;
+        color: #ffcc80 !important;
+        border: 1px solid rgba(230, 81, 0, 0.4) !important;
+    }
+
+    .badge-sistemas {
+        background: rgba(40, 53, 147, 0.35) !important;
+        color: #9fa8da !important;
+        border: 1px solid rgba(40, 53, 147, 0.5) !important;
+    }
+
+    .badge-supervisor {
+        background: rgba(0, 105, 92, 0.25) !important;
+        color: #80cbc4 !important;
+        border: 1px solid rgba(0, 105, 92, 0.4) !important;
+    }
+
+    .badge-asesor {
+        background: rgba(136, 14, 79, 0.25) !important;
+        color: #f48fb1 !important;
+        border: 1px solid rgba(136, 14, 79, 0.4) !important;
+    }
+
+    /* Botones de estado */
+    .btn-activar {
+        background: rgba(46, 125, 50, 0.2) !important;
+        color: #81c784 !important;
+        border: 1px solid rgba(46, 125, 50, 0.3) !important;
+    }
+
+    .btn-suspender {
+        background: rgba(230, 81, 0, 0.2) !important;
+        color: #ffcc80 !important;
+        border: 1px solid rgba(230, 81, 0, 0.3) !important;
+    }
+
+    .btn-desactivar,
+    .btn-estado[style*="c62828"] {
+        background: rgba(198, 40, 40, 0.2) !important;
+        color: #ef9a9a !important;
+        border: 1px solid rgba(198, 40, 40, 0.3) !important;
+    }
+
+    /* Badges de estado en solicitudes y otras vistas */
+    .sol-estado-badge[style*="fff8e1"] {
+        background: rgba(245, 127, 23, 0.2) !important;
+        color: #ffcc80 !important;
+    }
+
+    .sol-estado-badge[style*="e8f5e9"] {
+        background: rgba(46, 125, 50, 0.2) !important;
+        color: #81c784 !important;
+    }
+
+    .sol-estado-badge[style*="fce8e6"] {
+        background: rgba(198, 40, 40, 0.2) !important;
+        color: #ef9a9a !important;
+    }
+
+    /* Act tipo badges */
+    .act-tipo-badge {
+        opacity: 0.9 !important;
+    }
+
+    /* Prioridad badges */
+    .act-prio[style*="fce8e6"] {
+        background: rgba(198, 40, 40, 0.2) !important;
+        color: #ef9a9a !important;
+    }
+
+    .act-prio[style*="fff8e1"] {
+        background: rgba(245, 127, 23, 0.2) !important;
+        color: #ffcc80 !important;
+    }
+
+    .act-prio[style*="e8f5e9"] {
+        background: rgba(46, 125, 50, 0.2) !important;
+        color: #81c784 !important;
+    }
+}

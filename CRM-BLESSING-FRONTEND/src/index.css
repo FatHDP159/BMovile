@@ -1,0 +1,272 @@
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+body {
+    font-family: Tahoma, 'Segoe UI', Geneva, Verdana, sans-serif;
+    transition: background 0.4s ease, color 0.4s ease;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   MODO OSCURO
+   ════════════════════════════════════════════════════════════════════════ */
+body.theme-dark {
+
+    /* Fondo atmósfera base */
+    background: #090910 !important;
+    color: #EFEFF6 !important;
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .layout-content {
+        background: #090910 !important;
+    }
+
+    /* ── Secciones principales ──────────────────────────────────────────── */
+    .dash-seccion,
+    .table-container,
+    .panel-hoy,
+    .cal-container,
+    .panel-pendientes,
+    .sis-filtros-panel,
+    .search-bar {
+        background: #1A1A2E !important;
+        border-color: #3B3B68 !important;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* ── Tarjetas y KPIs ────────────────────────────────────────────────── */
+    .kpi-card,
+    .kpi-chart-card,
+    .act-hoy-card,
+    .rendimiento-card,
+    .act-card,
+    .act-pendiente-row,
+    .cal-celda {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* ── Tipografía ─────────────────────────────────────────────────────── */
+    .dash-header h1,
+    .page-header h1,
+    .dash-seccion h2,
+    .kpi-chart-card h3,
+    .kpi-value,
+    .act-hoy-num,
+    .efect-val,
+    .funnel-num,
+    .rendimiento-nombre,
+    .act-titulo,
+    .act-pend-titulo,
+    .modal h2,
+    .ejecutivo-cell span,
+    .rend-val,
+    .alcance-pct,
+    .cal-dia-num,
+    .cal-dia-nombre,
+    td,
+    th,
+    label,
+    h1,
+    h2,
+    h3,
+    h4,
+    p,
+    span {
+        color: #EFEFF6 !important;
+    }
+
+    .dash-saludo,
+    .dash-filtro,
+    .kpi-label,
+    .kpi-sub,
+    .act-hoy-label,
+    .efect-label,
+    .funnel-etapa,
+    .act-cliente,
+    .act-pend-meta,
+    .rend-label,
+    .act-asesor-tag,
+    .sol-estado-badge,
+    .sb__notif-msg,
+    .sb__notif-time {
+        color: #9797C4 !important;
+    }
+
+    .sin-datos,
+    .kpi-sub,
+    .text-muted {
+        color: #5C5CA3 !important;
+    }
+
+    /* ── Tablas ─────────────────────────────────────────────────────────── */
+    table {
+        background: #1A1A2E !important;
+    }
+
+    thead tr {
+        background: #2A2A4B !important;
+    }
+
+    thead th {
+        color: #EFEFF6 !important;
+        border-bottom: 1px solid #3B3B68 !important;
+    }
+
+    tbody tr td {
+        color: #EFEFF6 !important;
+        border-bottom: 1px solid #3B3B68 !important;
+        background: #1A1A2E !important;
+    }
+
+    tbody tr:hover td {
+        background: #2A2A4B !important;
+    }
+
+    /* ── Inputs / Selects ───────────────────────────────────────────────── */
+    .form-input,
+    .search-input,
+    .filter-select,
+    .objetivo-input,
+    .asesor-search-input,
+    .asesor-select-btn,
+    .gran-btn,
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select,
+    textarea {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #EFEFF6 !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: #5C5CA3 !important;
+    }
+
+    .form-input:focus,
+    .search-input:focus,
+    .filter-select:focus,
+    input:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #7979B4 !important;
+        box-shadow: 0 0 0 3px rgba(121, 121, 180, 0.15) !important;
+        outline: none !important;
+    }
+
+    /* ── Funnel barras ──────────────────────────────────────────────────── */
+    .funnel-barra-bg {
+        background: #4B4B86 !important;
+    }
+
+    .funnel-barra-fill {
+        background: #7979B4 !important;
+    }
+
+    /* ── Progreso / alcance barras ──────────────────────────────────────── */
+    .rend-barra-bg,
+    .alcance-barra-bg {
+        background: #4B4B86 !important;
+    }
+
+    /* ── Modales ────────────────────────────────────────────────────────── */
+    .modal {
+        background: #1A1A2E !important;
+        border: 1px solid #3B3B68 !important;
+        color: #EFEFF6 !important;
+    }
+
+    .modal-overlay {
+        background: rgba(9, 9, 16, 0.75) !important;
+    }
+
+    /* ── Botones secundarios ────────────────────────────────────────────── */
+    .btn-secondary {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #EFEFF6 !important;
+    }
+
+    .btn-secondary:hover {
+        background: #3B3B68 !important;
+    }
+
+    /* ── Scrollbar ──────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #090910;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #3B3B68;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #5C5CA3;
+    }
+
+    /* ── Badges ─────────────────────────────────────────────────────────── */
+    .badge {
+        border: 1px solid #3B3B68 !important;
+    }
+
+    /* ── Calendarios ────────────────────────────────────────────────────── */
+    .cal-hora-label {
+        color: #9797C4 !important;
+    }
+
+    .cal-dia-header.hoy {
+        background: #2A2A4B !important;
+    }
+
+    /* ── Dropdowns ──────────────────────────────────────────────────────── */
+    .asesor-select-dropdown,
+    .sb__user-menu {
+        background: #1A1A2E !important;
+        border-color: #3B3B68 !important;
+    }
+
+    .asesor-opcion:hover,
+    .sb__user-menu-item:hover {
+        background: #2A2A4B !important;
+    }
+
+    .asesor-opcion,
+    .sb__user-menu-item {
+        color: #EFEFF6 !important;
+    }
+
+    /* ── Ajustes modal ──────────────────────────────────────────────────── */
+    .ajustes-tema-row,
+    .ayuda-item {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+    }
+
+    .ajustes-label {
+        color: #9797C4 !important;
+    }
+
+    /* ── Transiciones ───────────────────────────────────────────────────── */
+    * {
+        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+}

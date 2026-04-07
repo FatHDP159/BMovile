@@ -725,3 +725,216 @@ body.theme-dark {
         transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
     }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   MIS EMPRESAS — Tarjetas
+   ════════════════════════════════════════════════════════════════════════ */
+body.theme-dark {
+
+    /* Tarjeta principal */
+    .empresa-card {
+        background: #1A1A2E !important;
+        border-color: #3B3B68 !important;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .empresa-card:hover {
+        box-shadow: 0 8px 28px rgba(92, 92, 163, 0.2) !important;
+    }
+
+    /* Header de tarjeta — mantiene gradiente oscuro pero más profundo */
+    .card-header {
+        background: linear-gradient(135deg, #090910 0%, #1A1A2E 100%) !important;
+    }
+
+    /* Body de tarjeta */
+    .card-body {
+        background: #1A1A2E !important;
+    }
+
+    /* Separadores */
+    .contacto-header-row {
+        border-color: #3B3B68 !important;
+    }
+
+    .card-footer {
+        border-color: #3B3B68 !important;
+        background: #1A1A2E !important;
+    }
+
+    .oportunidad-form {
+        border-color: #3B3B68 !important;
+    }
+
+    /* Avatar contacto */
+    .contacto-avatar {
+        background: rgba(57, 73, 171, 0.3) !important;
+        color: #7979B4 !important;
+    }
+
+    /* Nombre y cargo */
+    .contacto-nombre {
+        color: #EFEFF6 !important;
+    }
+
+    .contacto-cargo {
+        color: #9797C4 !important;
+    }
+
+    /* Rows de contacto */
+    .contacto-row {
+        color: #9797C4 !important;
+    }
+
+    /* Chips de contacto */
+    .contacto-chip {
+        background: #2A2A4B !important;
+        color: #EFEFF6 !important;
+    }
+
+    /* Iconos contacto */
+    .icon-dni {
+        background: #2A2A4B !important;
+        color: #9797C4 !important;
+    }
+
+    .icon-phone {
+        background: rgba(5, 150, 105, 0.2) !important;
+        color: #81c784 !important;
+    }
+
+    .icon-email {
+        background: rgba(59, 130, 246, 0.2) !important;
+        color: #90caf9 !important;
+    }
+
+    /* Dots paginación */
+    .dot {
+        background: #3B3B68 !important;
+    }
+
+    .dot.active {
+        background: #7979B4 !important;
+    }
+
+    /* Botones nav */
+    .btn-nav {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #9797C4 !important;
+    }
+
+    .btn-nav:hover:not(:disabled) {
+        background: #5C5CA3 !important;
+        color: #EFEFF6 !important;
+        border-color: #5C5CA3 !important;
+    }
+
+    /* Botón contacto */
+    .btn-contacto {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #9797C4 !important;
+    }
+
+    .btn-contacto:hover {
+        border-color: #7979B4 !important;
+        color: #EFEFF6 !important;
+    }
+
+    /* Sin contactos */
+    .sin-contactos {
+        color: #5C5CA3 !important;
+    }
+
+    /* Total badge */
+    .total-badge {
+        background: rgba(57, 73, 171, 0.3) !important;
+        color: #7979B4 !important;
+    }
+
+    /* Filtros bar */
+    .filtros-bar input,
+    .filtros-bar select {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #EFEFF6 !important;
+    }
+
+    .filtros-lineas {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #9797C4 !important;
+    }
+
+    .filtros-lineas input {
+        color: #EFEFF6 !important;
+    }
+
+    /* Lineas chips */
+    .linea-chip.entel {
+        background: rgba(28, 28, 190, 0.25) !important;
+        color: #90caf9 !important;
+    }
+
+    .linea-chip.claro {
+        background: rgba(198, 40, 40, 0.25) !important;
+        color: #ef9a9a !important;
+    }
+
+    .linea-chip.movistar {
+        background: rgba(13, 147, 196, 0.25) !important;
+        color: #80deea !important;
+    }
+
+    .linea-chip.otros {
+        background: rgba(106, 27, 154, 0.25) !important;
+        color: #ce93d8 !important;
+    }
+
+    /* Salesforce sustento en card header */
+    .sf-sustento.si {
+        background: rgba(46, 125, 50, 0.3) !important;
+        color: #81c784 !important;
+    }
+
+    .sf-sustento.no {
+        background: rgba(198, 40, 40, 0.3) !important;
+        color: #ef9a9a !important;
+    }
+
+    /* Tipificación modal */
+    .btn-tipificacion {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #9797C4 !important;
+    }
+
+    .btn-tipificacion:hover {
+        border-color: #7979B4 !important;
+        background: rgba(92, 92, 163, 0.2) !important;
+        color: #EFEFF6 !important;
+    }
+
+    .btn-tipificacion.selected {
+        background: linear-gradient(135deg, #5C5CA3, #3B3B68) !important;
+        border-color: #7979B4 !important;
+        color: #EFEFF6 !important;
+    }
+
+    /* Operador inputs */
+    .operador-field input {
+        background: #2A2A4B !important;
+        border-color: #3B3B68 !important;
+        color: #EFEFF6 !important;
+    }
+
+    .operador-field input:focus {
+        border-color: #7979B4 !important;
+    }
+
+    /* Paginación */
+    .paginacion {
+        color: #9797C4 !important;
+    }
+}

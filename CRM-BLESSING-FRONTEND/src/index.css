@@ -11,36 +11,42 @@
 :root {
     --bg-main: #f5f6fa;
     --bg-card: #ffffff;
-    --bg-table: #ffffff;
-    --bg-header: #ffffff;
+    --bg-soft: #f9f9f9;
     --bg-input: #ffffff;
     --bg-hover: #f0f2f8;
-    --border: #e8eaf0;
+    --border: #f0f0f0;
+    --border-mid: #e0e0e0;
     --text-primary: #1a1a2e;
     --text-secondary: #555566;
-    --text-muted: #999aaa;
-    --shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
-    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --text-muted: #888899;
+    --text-light: #bbbbcc;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
     --accent: #1D2558;
-    --accent-light: #eef0fb;
+    --accent-soft: #eef0fb;
+    --table-header: #1a1a2e;
+    --table-header-text: #ffffff;
 }
 
 /* ── Tema Oscuro ────────────────────────────────────────────────────────── */
 body.theme-dark {
-    --bg-main: #0f0f17;
-    --bg-card: #16162a;
-    --bg-table: #16162a;
-    --bg-header: #16162a;
-    --bg-input: #1e1e30;
-    --bg-hover: rgba(255, 255, 255, 0.05);
+    --bg-main: #1a1a2e;
+    --bg-card: #22223a;
+    --bg-soft: #2a2a45;
+    --bg-input: #2a2a45;
+    --bg-hover: rgba(255, 255, 255, 0.06);
     --border: rgba(255, 255, 255, 0.08);
-    --text-primary: rgba(255, 255, 255, 0.88);
-    --text-secondary: rgba(255, 255, 255, 0.55);
-    --text-muted: rgba(255, 255, 255, 0.3);
-    --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
-    --accent: #4f6ef7;
-    --accent-light: rgba(79, 110, 247, 0.15);
+    --border-mid: rgba(255, 255, 255, 0.12);
+    --text-primary: rgba(255, 255, 255, 0.90);
+    --text-secondary: rgba(255, 255, 255, 0.60);
+    --text-muted: rgba(255, 255, 255, 0.40);
+    --text-light: rgba(255, 255, 255, 0.25);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --accent: #5c6bc0;
+    --accent-soft: rgba(92, 107, 192, 0.18);
+    --table-header: #2d2d50;
+    --table-header-text: rgba(255, 255, 255, 0.88);
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
@@ -53,94 +59,171 @@ body {
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
 .layout-content {
-    background: var(--bg-main);
+    background: var(--bg-main) !important;
 }
 
-/* ── Cards / Contenedores ───────────────────────────────────────────────── */
-.table-container,
-.kpi-card,
+/* ── Secciones / Cards ──────────────────────────────────────────────────── */
+.dash-seccion,
 .kpi-chart-card,
-.rendimiento-card,
+.table-container,
 .panel-hoy,
 .cal-container,
 .panel-pendientes,
-.dash-seccion {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
+.rendimiento-card,
+.sis-filtros-panel {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.kpi-card,
+.act-hoy-card,
+.act-pendiente-row,
+.act-card {
+    background: var(--bg-soft) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Textos ─────────────────────────────────────────────────────────────── */
+.dash-header h1,
+.dash-seccion h2,
+.kpi-chart-card h3,
+.kpi-value,
+.act-hoy-num,
+.efect-val,
+.funnel-num,
+.page-header h1,
+.rendimiento-nombre,
+.act-titulo,
+.act-pend-titulo,
+.sb__notif-title,
+.ejecutivo-cell span {
+    color: var(--text-primary) !important;
+}
+
+.dash-saludo,
+.dash-filtro,
+.kpi-label,
+.kpi-sub,
+.act-hoy-label,
+.efect-label,
+.funnel-etapa,
+.act-cliente,
+.act-pend-meta,
+.rend-label,
+.sin-datos,
+.act-asesor-tag {
+    color: var(--text-secondary) !important;
+}
+
+.kpi-sub,
+.text-muted,
+.sin-datos {
+    color: var(--text-muted) !important;
 }
 
 /* ── Tablas ─────────────────────────────────────────────────────────────── */
 table {
-    background: var(--bg-table);
+    background: var(--bg-card) !important;
 }
 
 thead tr {
-    background: var(--accent) !important;
+    background: var(--table-header) !important;
+}
+
+thead th {
+    color: var(--table-header-text) !important;
+}
+
+tbody tr td {
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--border) !important;
+    background: var(--bg-card) !important;
 }
 
 tbody tr:hover td {
     background: var(--bg-hover) !important;
 }
 
-td,
-th {
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-}
-
-/* ── Inputs y selects ───────────────────────────────────────────────────── */
+/* ── Inputs / Selects ───────────────────────────────────────────────────── */
 .form-input,
 .search-input,
 .filter-select,
 .objetivo-input,
-.asesor-search-input {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    transition: border-color 0.15s, background 0.3s;
+.asesor-search-input,
+.asesor-select-btn,
+.gran-btn {
+    background: var(--bg-input) !important;
+    border-color: var(--border-mid) !important;
+    color: var(--text-primary) !important;
 }
 
 .form-input:focus,
 .search-input:focus,
 .filter-select:focus {
-    border-color: var(--accent);
+    border-color: var(--accent) !important;
     outline: none;
 }
 
-/* ── Textos secundarios ─────────────────────────────────────────────────── */
-.kpi-label,
-.kpi-sub,
-.act-cliente,
-.act-pend-meta,
-.sb__user-rol {
-    color: var(--text-secondary);
+/* ── Funnel barra ───────────────────────────────────────────────────────── */
+.funnel-barra-bg {
+    background: var(--bg-hover) !important;
 }
 
-/* ── Page headers ───────────────────────────────────────────────────────── */
-.page-header h1 {
-    color: var(--text-primary);
+/* ── Rend barra ─────────────────────────────────────────────────────────── */
+.rend-barra-bg {
+    background: var(--border-mid) !important;
+}
+
+/* ── Alcance barra ──────────────────────────────────────────────────────── */
+.alcance-barra-bg {
+    background: var(--bg-hover) !important;
 }
 
 /* ── Modales ────────────────────────────────────────────────────────────── */
 .modal {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+}
+
+.modal h2,
+.modal label,
+.modal p {
+    color: var(--text-primary) !important;
+}
+
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Search bar container ───────────────────────────────────────────────── */
+.search-bar {
     background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Page header ────────────────────────────────────────────────────────── */
+.page-header {
+    background: transparent;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+.badge {
     border: 1px solid var(--border);
-    color: var(--text-primary);
 }
 
-.modal h2 {
-    color: var(--text-primary);
-}
-
-/* ── Transición global ──────────────────────────────────────────────────── */
-.layout-content,
-.table-container,
+/* ── Transiciones globales ──────────────────────────────────────────────── */
+.dash-seccion,
 .kpi-card,
 .kpi-chart-card,
+.table-container,
 .modal,
 .form-input,
 .search-input,
-.filter-select {
-    transition: background 0.3s, border-color 0.3s, color 0.3s;
+.filter-select,
+.act-hoy-card,
+.rendimiento-card,
+tbody tr td {
+    transition: background 0.3s, border-color 0.3s, color 0.3s !important;
 }

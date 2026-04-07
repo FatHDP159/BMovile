@@ -14,7 +14,7 @@ import Buscar from './pages/Buscar';
 import GestionesSupervisor from './pages/GestionesSupervisor';
 import Solicitudes from './pages/Solicitudes';
 import CalendarioSupervisor from './pages/CalendarioSupervisor';
-import NotFound from './pages/Notfound';
+import NotFound from './pages/NotFound';
 
 const App = () => {
   const { user, loading } = useAuth();

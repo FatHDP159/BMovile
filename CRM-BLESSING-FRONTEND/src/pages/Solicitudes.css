@@ -32,6 +32,17 @@
     transition: opacity 0.15s;
     white-space: nowrap;
 }
-.btn-sol:hover    { opacity: 0.8; }
-.btn-sol.aprobar  { background: #e8f5e9; color: #2e7d32; }
-.btn-sol.rechazar { background: #fce8e6; color: #c62828; }
+
+.btn-sol:hover {
+    opacity: 0.8;
+}
+
+.btn-sol.aprobar {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.btn-sol.rechazar {
+    background: #fce8e6;
+    color: #c62828;
+}

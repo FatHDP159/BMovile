@@ -1,0 +1,146 @@
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ── Tema Claro (default) ───────────────────────────────────────────────── */
+:root {
+    --bg-main: #f5f6fa;
+    --bg-card: #ffffff;
+    --bg-table: #ffffff;
+    --bg-header: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #f0f2f8;
+    --border: #e8eaf0;
+    --text-primary: #1a1a2e;
+    --text-secondary: #555566;
+    --text-muted: #999aaa;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --accent: #1D2558;
+    --accent-light: #eef0fb;
+}
+
+/* ── Tema Oscuro ────────────────────────────────────────────────────────── */
+body.theme-dark {
+    --bg-main: #0f0f17;
+    --bg-card: #16162a;
+    --bg-table: #16162a;
+    --bg-header: #16162a;
+    --bg-input: #1e1e30;
+    --bg-hover: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.08);
+    --text-primary: rgba(255, 255, 255, 0.88);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-muted: rgba(255, 255, 255, 0.3);
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --accent: #4f6ef7;
+    --accent-light: rgba(79, 110, 247, 0.15);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+body {
+    font-family: Tahoma, 'Segoe UI', Geneva, Verdana, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    transition: background 0.3s, color 0.3s;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.layout-content {
+    background: var(--bg-main);
+}
+
+/* ── Cards / Contenedores ───────────────────────────────────────────────── */
+.table-container,
+.kpi-card,
+.kpi-chart-card,
+.rendimiento-card,
+.panel-hoy,
+.cal-container,
+.panel-pendientes,
+.dash-seccion {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+/* ── Tablas ─────────────────────────────────────────────────────────────── */
+table {
+    background: var(--bg-table);
+}
+
+thead tr {
+    background: var(--accent) !important;
+}
+
+tbody tr:hover td {
+    background: var(--bg-hover) !important;
+}
+
+td,
+th {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Inputs y selects ───────────────────────────────────────────────────── */
+.form-input,
+.search-input,
+.filter-select,
+.objetivo-input,
+.asesor-search-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    transition: border-color 0.15s, background 0.3s;
+}
+
+.form-input:focus,
+.search-input:focus,
+.filter-select:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+/* ── Textos secundarios ─────────────────────────────────────────────────── */
+.kpi-label,
+.kpi-sub,
+.act-cliente,
+.act-pend-meta,
+.sb__user-rol {
+    color: var(--text-secondary);
+}
+
+/* ── Page headers ───────────────────────────────────────────────────────── */
+.page-header h1 {
+    color: var(--text-primary);
+}
+
+/* ── Modales ────────────────────────────────────────────────────────────── */
+.modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.modal h2 {
+    color: var(--text-primary);
+}
+
+/* ── Transición global ──────────────────────────────────────────────────── */
+.layout-content,
+.table-container,
+.kpi-card,
+.kpi-chart-card,
+.modal,
+.form-input,
+.search-input,
+.filter-select {
+    transition: background 0.3s, border-color 0.3s, color 0.3s;
+}

@@ -528,3 +528,82 @@
 .sb__user-menu-item--logout:hover {
     background: #fce8e6;
 }
+
+/* ── Ajustes / Ayuda modales ────────────────────────────────────────────── */
+.ajustes-seccion {
+    margin-bottom: 20px;
+}
+
+.ajustes-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.ajustes-tema-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-hover);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.ajustes-tema-info {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Toggle switch */
+.theme-toggle {
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background: #ddd;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
+
+.theme-toggle--dark {
+    background: #4f6ef7;
+}
+
+.theme-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.3s;
+    display: block;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle--dark .theme-toggle-thumb {
+    transform: translateX(20px);
+}
+
+/* Ayuda items */
+.ayuda-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-hover);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}

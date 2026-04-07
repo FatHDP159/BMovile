@@ -83,11 +83,11 @@ const ModalAyuda = ({ onClose }) => (
                 <p className="ajustes-label">Soporte técnico</p>
                 <div className="ayuda-item">
                     <FontAwesomeIcon icon={faEnvelope} style={{ color: '#3949ab' }} />
-                    <span>soporte@bmovile.com.pe</span>
+                    <span>alexis.ayala@clarob2bnegocios.com.pe</span>
                 </div>
                 <div className="ayuda-item">
                     <FontAwesomeIcon icon={faPhone} style={{ color: '#3949ab' }} />
-                    <span>+51 999 999 999</span>
+                    <span>+51 905 578 852</span>
                 </div>
             </div>
 
@@ -99,7 +99,7 @@ const ModalAyuda = ({ onClose }) => (
                 </div>
                 <div className="ayuda-item">
                     <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Desarrollado por</span>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>B-Movile Tech</span>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>Alexis Ayala</span>
                 </div>
             </div>
 

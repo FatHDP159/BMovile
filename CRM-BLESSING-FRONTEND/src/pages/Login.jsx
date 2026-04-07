@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Login.css';
 
 const Login = () => {
     const [correo, setCorreo] = useState('');
     const [contraseña, setContraseña] = useState('');
+    const [verContraseña, setVerContraseña] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -17,13 +20,11 @@ const Login = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-
         try {
             const res = await api.post('/auth/login', {
                 correo_user: correo,
                 contraseña_user: contraseña,
             });
-
             login(res.data.user, res.data.accessToken, res.data.refreshToken);
             navigate('/dashboard');
         } catch (err) {
@@ -56,14 +57,24 @@ const Login = () => {
 
                     <div className="login-field">
                         <label>Contraseña</label>
-                        <input
-                            type="password"
-                            value={contraseña}
-                            onChange={(e) => setContraseña(e.target.value)}
-                            className="login-input"
-                            placeholder="••••••••••••"
-                            required
-                        />
+                        <div className="login-input-wrapper">
+                            <input
+                                type={verContraseña ? 'text' : 'password'}
+                                value={contraseña}
+                                onChange={(e) => setContraseña(e.target.value)}
+                                className="login-input"
+                                placeholder="••••••••••••"
+                                required
+                            />
+                            <button
+                                type="button"
+                                className="login-eye-btn"
+                                onClick={() => setVerContraseña(v => !v)}
+                                tabIndex={-1}
+                            >
+                                <FontAwesomeIcon icon={verContraseña ? faEyeSlash : faEye} />
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" className="login-button" disabled={loading}>

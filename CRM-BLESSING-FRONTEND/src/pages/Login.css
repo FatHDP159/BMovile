@@ -6,7 +6,7 @@
 
 body {
     background-color: #f0f2f5;
-    font-family:Tahoma, 'Segoe UI',  Geneva, Verdana, sans-serif;
+    font-family: Tahoma, 'Segoe UI', Geneva, Verdana, sans-serif;
 }
 
 .login-container {
@@ -54,6 +54,12 @@ body {
     font-weight: 500;
 }
 
+.login-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .login-input {
     padding: 10px 14px;
     border-radius: 8px;
@@ -65,6 +71,22 @@ body {
 
 .login-input:focus {
     border-color: #1a1a2e;
+}
+
+.login-eye-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    font-size: 14px;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.login-eye-btn:hover {
+    color: #1a1a2e;
 }
 
 .login-button {

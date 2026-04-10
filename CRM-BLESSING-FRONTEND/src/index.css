@@ -893,6 +893,7 @@ body.theme-dark {
     }
 
     /* Salesforce sustento en card header */
+    /*Corrección de prueba*/
     .sf-sustento.si {
         background: rgba(46, 125, 50, 0.3) !important;
         color: #81c784 !important;

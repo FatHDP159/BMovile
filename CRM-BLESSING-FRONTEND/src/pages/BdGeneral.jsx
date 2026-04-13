@@ -374,7 +374,7 @@ const BdGeneral = () => {
                         <div className="form-field"><label>Segmento (opcional)</label>
                             <select className="form-input" value={formMasivo.segmento} onChange={(e) => setFormMasivo({ ...formMasivo, segmento: e.target.value })}>
                                 <option value="">Todos</option>
-                                <option value="micro">Micro</option>
+                                <option value="micro">Micro Empresas</option>
                                 <option value="pyme">Pyme</option>
                                 <option value="mayores">Mayores</option>
                                 <option value="mediana">Mediana</option>

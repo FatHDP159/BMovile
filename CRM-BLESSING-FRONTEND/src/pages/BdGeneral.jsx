@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faDatabase, faUpload, faUserPlus, faUserMinus,
     faTrash, faUsers, faAddressBook, faChevronLeft, faChevronRight,
-    faFileExcel
+    faFileExcel, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -323,7 +323,7 @@ const BdGeneral = () => {
             {importando && (
                 <div className="modal-overlay">
                     <div className="modal" style={{ maxWidth: 380, textAlign: 'center' }}>
-                        <div style={{ fontSize: 44, marginBottom: 16 }}>📊</div>
+                        <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: 44, color: '#1D2558', marginBottom: 16 }} />
                         <h2 style={{ marginBottom: 10 }}>Importando base de datos</h2>
                         <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>
                             Por favor espera, esto puede tardar unos segundos dependiendo del tamaño del archivo...

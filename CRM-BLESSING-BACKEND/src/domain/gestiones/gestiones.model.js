@@ -19,7 +19,7 @@ const gestionSchema = new mongoose.Schema(
         },
         tipo_tipificacion: {
             type: String,
-            enum: ['interesado', 'cliente_claro', 'sin_contacto', 'con_deuda', 'no_contesta'],
+            enum: ['interesado', 'cliente_claro', 'sin_contacto', 'con_deuda', 'no_contesta' , 'cliente_no_interesado', 'empresa_con_sustento_valido'],
             required: true,
         },
         oportunidad: {

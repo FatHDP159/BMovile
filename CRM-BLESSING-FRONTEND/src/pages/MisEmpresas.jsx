@@ -261,6 +261,8 @@ const TIPIFICACIONES = [
     { key: 'sin_contacto', label: 'Sin Contactos / Teléfonos errados' },
     { key: 'con_deuda', label: 'Cliente con Deuda' },
     { key: 'no_contesta', label: 'Cliente No Contesta' },
+    { key: 'cliente_no_interesado', label: 'Cliente No Interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Empresa Con Sustento Valido' }
 ];
 
 const PRODUCTOS = [

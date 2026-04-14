@@ -9,25 +9,27 @@ import './Usuarios.css';
 import './GestionesSupervisor.css';
 
 const TIPOS = [
-    { key: 'interesado',    label: 'Cliente Interesado',  color: 'tipo-interesado' },
-    { key: 'cliente_claro', label: 'Cliente Claro',       color: 'tipo-claro' },
-    { key: 'sin_contacto',  label: 'Sin Contacto',        color: 'tipo-sin-contacto' },
-    { key: 'con_deuda',     label: 'Con Deuda',           color: 'tipo-deuda' },
-    { key: 'no_contesta',   label: 'No Contesta',         color: 'tipo-no-contesta' },
+    { key: 'interesado', label: 'Cliente Interesado', color: 'tipo-interesado' },
+    { key: 'cliente_claro', label: 'Cliente Claro', color: 'tipo-claro' },
+    { key: 'sin_contacto', label: 'Sin Contacto', color: 'tipo-sin-contacto' },
+    { key: 'con_deuda', label: 'Con Deuda', color: 'tipo-deuda' },
+    { key: 'no_contesta', label: 'No Contesta', color: 'tipo-no-contesta' },
+    { key: 'cliente_no_interesado', label: 'Cliente No Interesado', color: 'tipo-no-interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Empresa con Sustento Válido', color: 'tipo-sustento-valido' },
 ];
 
 const ESTADOS_OPO = [
-    { key: 'Identificada',        label: 'Identificada',        color: '#ede7f6', text: '#4527a0' },
+    { key: 'Identificada', label: 'Identificada', color: '#ede7f6', text: '#4527a0' },
     { key: 'Propuesta Entregada', label: 'Propuesta Entregada', color: '#fff8e1', text: '#f57f17' },
-    { key: 'Negociación',         label: 'Negociación',         color: '#e8f5e9', text: '#2e7d32' },
-    { key: 'Negociada Aprobada',  label: 'Negociada Aprobada',  color: '#e3f2fd', text: '#1565c0' },
+    { key: 'Negociación', label: 'Negociación', color: '#e8f5e9', text: '#2e7d32' },
+    { key: 'Negociada Aprobada', label: 'Negociada Aprobada', color: '#e3f2fd', text: '#1565c0' },
     { key: 'Negociada Rechazada', label: 'Negociada Rechazada', color: '#fce8e6', text: '#c62828' },
 ];
 
 const fmt = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
 
 const TipoBadge = ({ tipo }) => {

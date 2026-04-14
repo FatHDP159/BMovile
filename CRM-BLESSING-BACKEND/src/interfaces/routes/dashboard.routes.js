@@ -29,10 +29,10 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
         const actHoy = await Actividad.find({ asesor: id_asesor, fecha: { $gte: hoyInicio, $lte: hoyFin } });
 
         const actividadesHoy = {
-            llamada: actHoy.filter(a => a.tipo === 'llamada').length,
-            reunion: actHoy.filter(a => a.tipo === 'reunion').length,
-            seguimiento: actHoy.filter(a => a.tipo === 'seguimiento').length,
-            tarea: actHoy.filter(a => a.tipo === 'tarea').length,
+            llamada:            actHoy.filter(a => a.tipo === 'llamada').length,
+            reunion:            actHoy.filter(a => a.tipo === 'reunion').length,
+            seguimiento:        actHoy.filter(a => a.tipo === 'seguimiento').length,
+            tarea:              actHoy.filter(a => a.tipo === 'tarea').length,
             enviar_informacion: actHoy.filter(a => a.tipo === 'enviar_informacion').length,
         };
 
@@ -152,11 +152,13 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
         }).populate('asesor', 'nombre_user').sort({ fecha: 1, hora: 1 }).limit(10);
 
         const gestionesPorTipo = {
-            interesado:    gestiones.filter(g => g.tipo_tipificacion === 'interesado').length,
-            cliente_claro: gestiones.filter(g => g.tipo_tipificacion === 'cliente_claro').length,
-            sin_contacto:  gestiones.filter(g => g.tipo_tipificacion === 'sin_contacto').length,
-            con_deuda:     gestiones.filter(g => g.tipo_tipificacion === 'con_deuda').length,
-            no_contesta:   gestiones.filter(g => g.tipo_tipificacion === 'no_contesta').length,
+            interesado:                 gestiones.filter(g => g.tipo_tipificacion === 'interesado').length,
+            cliente_claro:              gestiones.filter(g => g.tipo_tipificacion === 'cliente_claro').length,
+            sin_contacto:               gestiones.filter(g => g.tipo_tipificacion === 'sin_contacto').length,
+            con_deuda:                  gestiones.filter(g => g.tipo_tipificacion === 'con_deuda').length,
+            no_contesta:                gestiones.filter(g => g.tipo_tipificacion === 'no_contesta').length,
+            cliente_no_interesado:      gestiones.filter(g => g.tipo_tipificacion === 'cliente_no_interesado').length,
+            empresa_con_sustento_valido:gestiones.filter(g => g.tipo_tipificacion === 'empresa_con_sustento_valido').length,
         };
 
         res.json({

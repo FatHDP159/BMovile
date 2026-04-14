@@ -22,7 +22,7 @@ const pct = (n) => `${n || 0}%`;
 const fmtFecha = (fecha, hora) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${hora || ''}`;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${hora || ''}`;
 };
 
 const TarjetaKPI = ({ icon, label, value, color, sub }) => (
@@ -37,10 +37,10 @@ const TarjetaKPI = ({ icon, label, value, color, sub }) => (
 );
 
 const TIPOS_ACT = {
-    llamada:            { label: 'Llamada',    icon: faPhone,     color: '#1565c0' },
-    reunion:            { label: 'Reunión',    icon: faHandshake, color: '#2e7d32' },
-    enviar_informacion: { label: 'Envío info', icon: faPaperPlane,color: '#6a1b9a' },
-    seguimiento:        { label: 'Seguimiento',icon: faRotate,    color: '#c62828' },
+    llamada: { label: 'Llamada', icon: faPhone, color: '#1565c0' },
+    reunion: { label: 'Reunión', icon: faHandshake, color: '#2e7d32' },
+    enviar_informacion: { label: 'Envío info', icon: faPaperPlane, color: '#6a1b9a' },
+    seguimiento: { label: 'Seguimiento', icon: faRotate, color: '#c62828' },
 };
 
 const DashboardSupervisor = () => {
@@ -73,18 +73,20 @@ const DashboardSupervisor = () => {
     const { metricas, rendimientoPorAsesor, kpis, actPendientes, asesores } = data || {};
 
     const donaData = [
-        { name: 'Móvil',  value: kpis?.ventasPorProducto?.movil  || 0 },
-        { name: 'Fibra',  value: kpis?.ventasPorProducto?.fibra  || 0 },
-        { name: 'Cloud',  value: kpis?.ventasPorProducto?.cloud  || 0 },
-        { name: 'Fija',   value: kpis?.ventasPorProducto?.fija   || 0 },
+        { name: 'Móvil', value: kpis?.ventasPorProducto?.movil || 0 },
+        { name: 'Fibra', value: kpis?.ventasPorProducto?.fibra || 0 },
+        { name: 'Cloud', value: kpis?.ventasPorProducto?.cloud || 0 },
+        { name: 'Fija', value: kpis?.ventasPorProducto?.fija || 0 },
     ].filter(d => d.value > 0);
 
     const tiposData = [
-        { name: 'Interesado',   value: kpis?.gestionesPorTipo?.interesado    || 0, color: '#2e7d32' },
-        { name: 'Cliente Claro',value: kpis?.gestionesPorTipo?.cliente_claro || 0, color: '#1565c0' },
-        { name: 'Sin Contacto', value: kpis?.gestionesPorTipo?.sin_contacto  || 0, color: '#f57f17' },
-        { name: 'Con Deuda',    value: kpis?.gestionesPorTipo?.con_deuda     || 0, color: '#c62828' },
-        { name: 'No Contesta',  value: kpis?.gestionesPorTipo?.no_contesta   || 0, color: '#6a1b9a' },
+        { name: 'Interesado', value: kpis?.gestionesPorTipo?.interesado || 0, color: '#2e7d32' },
+        { name: 'Cliente Claro', value: kpis?.gestionesPorTipo?.cliente_claro || 0, color: '#1565c0' },
+        { name: 'Sin Contacto', value: kpis?.gestionesPorTipo?.sin_contacto || 0, color: '#f57f17' },
+        { name: 'Con Deuda', value: kpis?.gestionesPorTipo?.con_deuda || 0, color: '#c62828' },
+        { name: 'No Contesta', value: kpis?.gestionesPorTipo?.no_contesta || 0, color: '#6a1b9a' },
+        { name: 'No Interesado', value: kpis?.gestionesPorTipo?.cliente_no_interesado || 0, color: '#283593' },
+        { name: 'Sustento Válido', value: kpis?.gestionesPorTipo?.empresa_con_sustento_valido || 0, color: '#00695c' },
     ].filter(d => d.value > 0);
 
     const funnelData = kpis?.funnelStages || [];
@@ -127,12 +129,12 @@ const DashboardSupervisor = () => {
             <div className="dash-seccion">
                 <h2>Métricas del equipo</h2>
                 <div className="kpi-grid">
-                    <TarjetaKPI icon={faBuilding}  label="Empresas Asignadas"  value={metricas?.empresasAsignadas || 0} color="#3949ab" />
-                    <TarjetaKPI icon={faUsers}     label="Total Gestiones"      value={metricas?.totalGestiones || 0}    color="#00838f" />
-                    <TarjetaKPI icon={faUsers}     label="Interesados"          value={metricas?.interesados || 0}       color="#f57f17" />
-                    <TarjetaKPI icon={faTrophy}    label="Ganadas"              value={metricas?.ganadas || 0}           color="#2e7d32" />
-                    <TarjetaKPI icon={faDollarSign} label="CF Total Ganadas"    value={fmt(metricas?.cfTotal)}           color="#c62828" />
-                    <TarjetaKPI icon={faPercent}   label="Tasa de Efectividad"  value={pct(metricas?.tasaEfectividad)}   color="#6a1b9a" />
+                    <TarjetaKPI icon={faBuilding} label="Empresas Asignadas" value={metricas?.empresasAsignadas || 0} color="#3949ab" />
+                    <TarjetaKPI icon={faUsers} label="Total Gestiones" value={metricas?.totalGestiones || 0} color="#00838f" />
+                    <TarjetaKPI icon={faUsers} label="Interesados" value={metricas?.interesados || 0} color="#f57f17" />
+                    <TarjetaKPI icon={faTrophy} label="Ganadas" value={metricas?.ganadas || 0} color="#2e7d32" />
+                    <TarjetaKPI icon={faDollarSign} label="CF Total Ganadas" value={fmt(metricas?.cfTotal)} color="#c62828" />
+                    <TarjetaKPI icon={faPercent} label="Tasa de Efectividad" value={pct(metricas?.tasaEfectividad)} color="#6a1b9a" />
                 </div>
             </div>
 
@@ -146,7 +148,7 @@ const DashboardSupervisor = () => {
                         {rendimientoPorAsesor?.map(a => {
                             const maxAsig = Math.max(...(rendimientoPorAsesor?.map(x => x.asignadas) || [1]), 1);
                             const maxGest = Math.max(...(rendimientoPorAsesor?.map(x => x.gestiones) || [1]), 1);
-                            const maxGan  = Math.max(...(rendimientoPorAsesor?.map(x => x.ganadas) || [1]), 1);
+                            const maxGan = Math.max(...(rendimientoPorAsesor?.map(x => x.ganadas) || [1]), 1);
                             return (
                                 <div key={a.id} className="rendimiento-card">
                                     <div className="rendimiento-nombre">{a.nombre}</div>
@@ -213,7 +215,7 @@ const DashboardSupervisor = () => {
                             <ResponsiveContainer width="100%" height={220}>
                                 <PieChart>
                                     <Pie data={donaData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value"
-                                        label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
+                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                                         {donaData.map((_, i) => <Cell key={i} fill={COLORS_DONA[i % COLORS_DONA.length]} />)}
                                     </Pie>
                                     <Tooltip /><Legend />
@@ -232,7 +234,7 @@ const DashboardSupervisor = () => {
                                     <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-30} textAnchor="end" />
                                     <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                                     <Tooltip />
-                                    <Bar dataKey="value" name="Cantidad" radius={[4,4,0,0]}>
+                                    <Bar dataKey="value" name="Cantidad" radius={[4, 4, 0, 0]}>
                                         {tiposData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                                     </Bar>
                                 </BarChart>

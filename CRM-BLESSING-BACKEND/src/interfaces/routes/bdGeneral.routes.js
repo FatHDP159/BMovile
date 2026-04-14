@@ -4,7 +4,7 @@ const bdGeneralRepository = require("../../infrastructure/repositories/bdGeneral
 const { verifyToken } = require("../../infrastructure/middlewares/auth.middleware");
 const { verifyRole } = require("../../infrastructure/middlewares/roles.middleware");
 
-// GET - Listar todas las empresas (sistemas y supervisor)
+// GET - Listar todas las empresas
 router.get("/", verifyToken, verifyRole("sistemas", "supervisor"), async (req, res) => {
     try {
         const empresas = await bdGeneralRepository.findAll();
@@ -13,6 +13,7 @@ router.get("/", verifyToken, verifyRole("sistemas", "supervisor"), async (req, r
         res.status(500).json({ message: "Error al listar empresas", error: error.message });
     }
 });
+
 // GET - Buscar con filtros y paginación
 router.get("/buscar", verifyToken, verifyRole("sistemas", "supervisor"), async (req, res) => {
     try {
@@ -57,11 +58,7 @@ router.post("/", verifyToken, verifyRole("sistemas"), async (req, res) => {
 router.post("/asignar-masivo", verifyToken, verifyRole("sistemas"), async (req, res) => {
     try {
         const { id_asesor, cantidad, segmento, operador, lineas_min, lineas_max } = req.body;
-
-        if (!id_asesor || !cantidad) {
-            return res.status(400).json({ message: "id_asesor y cantidad son requeridos" });
-        }
-
+        if (!id_asesor || !cantidad) return res.status(400).json({ message: "id_asesor y cantidad son requeridos" });
         const total = await bdGeneralRepository.asignarMasivo(id_asesor, cantidad, segmento, operador, lineas_min, lineas_max);
         res.json({ message: `${total} empresas asignadas correctamente`, total });
     } catch (error) {
@@ -69,34 +66,44 @@ router.post("/asignar-masivo", verifyToken, verifyRole("sistemas"), async (req, 
     }
 });
 
-// PATCH - Asignar empresa individual (solo sistemas)
+// POST - Agregar contacto a empresa
+router.post("/:id/contactos", verifyToken, verifyRole("asesor", "sistemas", "supervisor"), async (req, res) => {
+    try {
+        const BdGeneral = require('../../domain/db_general/db_general.models.js');
+        const empresa = await BdGeneral.findById(req.params.id);
+        if (!empresa) return res.status(404).json({ message: "Empresa no encontrada" });
+        empresa.contactos.push(req.body);
+        await empresa.save();
+        res.json({ message: "Contacto agregado correctamente", empresa });
+    } catch (error) {
+        res.status(500).json({ message: "Error al agregar contacto", error: error.message });
+    }
+});
+
+// PATCH - Asignar empresa individual
 router.patch("/:id/asignar", verifyToken, verifyRole("sistemas"), async (req, res) => {
     try {
         const { id_asesor } = req.body;
         const empresa = await bdGeneralRepository.asignar(req.params.id, id_asesor);
-
         if (!empresa) return res.status(404).json({ message: "Empresa no encontrada" });
-
         res.json({ message: "Empresa asignada correctamente", empresa });
     } catch (error) {
         res.status(500).json({ message: "Error al asignar empresa", error: error.message });
     }
 });
 
-// PATCH - Desasignar empresa individual (solo sistemas)
+// PATCH - Desasignar empresa individual
 router.patch("/:id/desasignar", verifyToken, verifyRole("sistemas"), async (req, res) => {
     try {
         const empresa = await bdGeneralRepository.desasignar(req.params.id);
-
         if (!empresa) return res.status(404).json({ message: "Empresa no encontrada" });
-
         res.json({ message: "Empresa desasignada correctamente", empresa });
     } catch (error) {
         res.status(500).json({ message: "Error al desasignar empresa", error: error.message });
     }
 });
 
-// PATCH - Desasignar todas las empresas de un asesor (solo sistemas)
+// PATCH - Desasignar todas las empresas de un asesor
 router.patch("/desasignar-todo/:id_asesor", verifyToken, verifyRole("sistemas"), async (req, res) => {
     try {
         const total = await bdGeneralRepository.desasignarTodo(req.params.id_asesor);
@@ -106,13 +113,25 @@ router.patch("/desasignar-todo/:id_asesor", verifyToken, verifyRole("sistemas"),
     }
 });
 
+// DELETE - Eliminar contacto de empresa
+router.delete("/:id/contactos/:index", verifyToken, verifyRole("asesor", "sistemas", "supervisor"), async (req, res) => {
+    try {
+        const BdGeneral = require('../../domain/db_general/db_general.models.js');
+        const empresa = await BdGeneral.findById(req.params.id);
+        if (!empresa) return res.status(404).json({ message: "Empresa no encontrada" });
+        empresa.contactos.splice(Number(req.params.index), 1);
+        await empresa.save();
+        res.json({ message: "Contacto eliminado correctamente", empresa });
+    } catch (error) {
+        res.status(500).json({ message: "Error al eliminar contacto", error: error.message });
+    }
+});
+
 // DELETE - Eliminar empresa (solo sistemas)
 router.delete("/:id", verifyToken, verifyRole("sistemas"), async (req, res) => {
     try {
         const empresa = await bdGeneralRepository.eliminar(req.params.id);
-
         if (!empresa) return res.status(404).json({ message: "Empresa no encontrada" });
-
         res.json({ message: "Empresa eliminada correctamente" });
     } catch (error) {
         res.status(500).json({ message: "Error al eliminar empresa", error: error.message });

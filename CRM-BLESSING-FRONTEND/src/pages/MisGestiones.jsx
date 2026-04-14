@@ -9,11 +9,13 @@ import './Usuarios.css';
 import './MisGestiones.css';
 
 const TIPOS = [
-    { key: 'interesado',    label: 'Cliente Interesado',  color: 'tipo-interesado' },
-    { key: 'cliente_claro', label: 'Cliente Claro',       color: 'tipo-claro' },
-    { key: 'sin_contacto',  label: 'Sin Contacto',        color: 'tipo-sin-contacto' },
-    { key: 'con_deuda',     label: 'Con Deuda',           color: 'tipo-deuda' },
-    { key: 'no_contesta',   label: 'No Contesta',         color: 'tipo-no-contesta' },
+    { key: 'interesado', label: 'Cliente Interesado', color: 'tipo-interesado' },
+    { key: 'cliente_claro', label: 'Cliente Claro', color: 'tipo-claro' },
+    { key: 'sin_contacto', label: 'Sin Contacto', color: 'tipo-sin-contacto' },
+    { key: 'con_deuda', label: 'Con Deuda', color: 'tipo-deuda' },
+    { key: 'no_contesta', label: 'No Contesta', color: 'tipo-no-contesta' },
+    { key: 'cliente_no_interesado', label: 'Cliente No Interesado', color: 'tipo-no-interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Empresa con Sustento Válido', color: 'tipo-sustento-valido' },
 ];
 
 const PRODUCTOS = [
@@ -24,7 +26,7 @@ const PRODUCTOS = [
 const fmt = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
 
 const TipoBadge = ({ tipo }) => {
@@ -168,7 +170,7 @@ const ModalEditar = ({ gestion, onClose, onGuardado }) => {
                         <div className="form-field">
                             <label>Operadores actuales</label>
                             <div className="operadores-grid">
-                                {['entel','claro','movistar','otros','total_lineas'].map(op => (
+                                {['entel', 'claro', 'movistar', 'otros', 'total_lineas'].map(op => (
                                     <div key={op} className="operador-field">
                                         <label>{op === 'total_lineas' ? 'Total' : op.charAt(0).toUpperCase() + op.slice(1)}</label>
                                         <input type="number" value={form[op]} onChange={e => setForm({ ...form, [op]: e.target.value })} min="0" />

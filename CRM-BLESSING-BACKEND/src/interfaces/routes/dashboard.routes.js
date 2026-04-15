@@ -174,3 +174,4 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
 });
 
 module.exports = router;
+/*chau*/

@@ -14,6 +14,14 @@ const CATEGORIA_CF = {
     'SVA': 'fija',
 };
 
+// Helper — fix fecha fin a 23:59:59
+const fechaFin = (fecha_hasta) => {
+    if (!fecha_hasta) return new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+    const f = new Date(fecha_hasta);
+    f.setHours(23, 59, 59, 999);
+    return f;
+};
+
 // GET - Dashboard asesor
 router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
     try {
@@ -21,7 +29,7 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
         const id_asesor = req.user.id;
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const fin = fecha_hasta ? new Date(fecha_hasta) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+        const fin = fechaFin(fecha_hasta);
         const filtroFecha = { $gte: inicio, $lte: fin };
 
         const hoyInicio = new Date(); hoyInicio.setHours(0,0,0,0);
@@ -36,9 +44,10 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
             enviar_informacion: actHoy.filter(a => a.tipo === 'enviar_informacion').length,
         };
 
-        const empresasAsignadas = await BdGeneral.countDocuments({
+        // En cartera — total actual sin filtro de fechas
+        const empresasEnCartera = await BdGeneral.countDocuments({
             'asignacion.id_asesor': id_asesor,
-            'asignacion.fecha_asignada': filtroFecha,
+            estado_base: 'asignada',
         });
 
         const gestiones = await Gestion.find({
@@ -62,7 +71,7 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
         const propuesta = interesados.filter(g => g.oportunidad?.estado === 'Propuesta Entregada').length;
 
         const funnelStages = [
-            { etapa: 'Prospectos',  cantidad: empresasAsignadas },
+            { etapa: 'En cartera', cantidad: empresasEnCartera },
             { etapa: 'Interesados', cantidad: interesados.length },
             { etapa: 'Propuesta',   cantidad: propuesta + negociacion + ganadas.length },
             { etapa: 'Negociación', cantidad: negociacion + ganadas.length },
@@ -72,7 +81,7 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
         const ventasPorProducto = { movil: 0, fibra: 0, fija: 0, cloud: 0 };
         ganadas.forEach(g => { const cat = CATEGORIA_CF[g.oportunidad?.producto] || 'movil'; ventasPorProducto[cat]++; });
 
-        const tasaEfectividad = empresasAsignadas > 0 ? Math.round((interesados.length / empresasAsignadas) * 100) : 0;
+        const tasaEfectividad = empresasEnCartera > 0 ? Math.round((interesados.length / empresasEnCartera) * 100) : 0;
 
         const reuniones = await Actividad.find({ asesor: id_asesor, tipo: 'reunion', estado: 'completado', fecha: filtroFecha });
         const reunionesPorDia = {};
@@ -85,7 +94,7 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
         res.json({
             actividadesHoy,
             tarjetas: { clientesFunnel, ganadas: ganadas.length, cfTotal: cfTotales.total, cfMovil: cfTotales.movil, cfFibra: cfTotales.fibra, cfFija: cfTotales.fija, cfCloud: cfTotales.cloud },
-            kpis: { ventasPorProducto, tasaEfectividad, empresasAsignadas, interesados: interesados.length, funnelStages, reunionesChart },
+            kpis: { ventasPorProducto, tasaEfectividad, empresasEnCartera, interesados: interesados.length, funnelStages, reunionesChart },
         });
     } catch (error) {
         res.status(500).json({ message: 'Error al cargar dashboard', error: error.message });
@@ -98,42 +107,49 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
         const { fecha_desde, fecha_hasta, id_asesor } = req.query;
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const fin = fecha_hasta ? new Date(fecha_hasta) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+        const fin = fechaFin(fecha_hasta);
         const filtroFecha = { $gte: inicio, $lte: fin };
 
         const asesores = await User.find({ rol_user: 'asesor', estado_user: 'activo' }).select('_id nombre_user');
 
         const filtroAsesor = id_asesor ? { 'asesor.id_asesor': id_asesor } : {};
-        const filtroAsignacion = id_asesor ? { 'asignacion.id_asesor': id_asesor } : {};
 
         const totalGestiones = await Gestion.countDocuments({ ...filtroAsesor, 'fechas.fecha_tipificacion': filtroFecha });
-        const empresasAsignadas = await BdGeneral.countDocuments({ ...filtroAsignacion, 'asignacion.fecha_asignada': filtroFecha });
+
+        // En cartera — total actual sin filtro de fechas
+        const filtroCartera = id_asesor ? { 'asignacion.id_asesor': id_asesor, estado_base: 'asignada' } : { estado_base: 'asignada' };
+        const empresasEnCartera = await BdGeneral.countDocuments(filtroCartera);
+
         const gestiones = await Gestion.find({ ...filtroAsesor, 'fechas.fecha_tipificacion': filtroFecha });
 
         const interesados = gestiones.filter(g => g.tipo_tipificacion === 'interesado');
         const ganadas = interesados.filter(g => g.oportunidad?.estado === 'Negociada Aprobada');
         const cfTotal = ganadas.reduce((acc, g) => acc + (g.oportunidad?.cargo_fijo || 0), 0);
-        const tasaEfectividad = empresasAsignadas > 0 ? Math.round((interesados.length / empresasAsignadas) * 100) : 0;
+        const tasaEfectividad = empresasEnCartera > 0 ? Math.round((interesados.length / empresasEnCartera) * 100) : 0;
 
         const rendimientoPorAsesor = await Promise.all(asesores.map(async (asesor) => {
             const gAsesor = gestiones.filter(g => g.asesor?.id_asesor?.toString() === asesor._id.toString());
             const intAsesor = gAsesor.filter(g => g.tipo_tipificacion === 'interesado');
             const ganAsesor = intAsesor.filter(g => g.oportunidad?.estado === 'Negociada Aprobada');
-            const asigAsesor = await BdGeneral.countDocuments({ 'asignacion.id_asesor': asesor._id, 'asignacion.fecha_asignada': filtroFecha });
+            // En cartera por asesor — total actual
+            const enCarteraAsesor = await BdGeneral.countDocuments({
+                'asignacion.id_asesor': asesor._id,
+                estado_base: 'asignada',
+            });
             return {
                 id: asesor._id,
                 nombre: asesor.nombre_user,
-                asignadas: asigAsesor,
+                enCartera: enCarteraAsesor,
                 gestiones: gAsesor.length,
                 interesados: intAsesor.length,
                 ganadas: ganAsesor.length,
                 cf: ganAsesor.reduce((acc, g) => acc + (g.oportunidad?.cargo_fijo || 0), 0),
-                efectividad: asigAsesor > 0 ? Math.round((intAsesor.length / asigAsesor) * 100) : 0,
+                efectividad: enCarteraAsesor > 0 ? Math.round((intAsesor.length / enCarteraAsesor) * 100) : 0,
             };
         }));
 
         const funnelStages = [
-            { etapa: 'Prospectos',  cantidad: empresasAsignadas },
+            { etapa: 'En cartera', cantidad: empresasEnCartera },
             { etapa: 'Interesados', cantidad: interesados.length },
             { etapa: 'Propuesta',   cantidad: interesados.filter(g => ['Propuesta Entregada','Negociación','Negociada Aprobada','Negociada Rechazada'].includes(g.oportunidad?.estado)).length },
             { etapa: 'Negociación', cantidad: interesados.filter(g => ['Negociación','Negociada Aprobada','Negociada Rechazada'].includes(g.oportunidad?.estado)).length },
@@ -152,17 +168,17 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
         }).populate('asesor', 'nombre_user').sort({ fecha: 1, hora: 1 }).limit(10);
 
         const gestionesPorTipo = {
-            interesado:                 gestiones.filter(g => g.tipo_tipificacion === 'interesado').length,
-            cliente_claro:              gestiones.filter(g => g.tipo_tipificacion === 'cliente_claro').length,
-            sin_contacto:               gestiones.filter(g => g.tipo_tipificacion === 'sin_contacto').length,
-            con_deuda:                  gestiones.filter(g => g.tipo_tipificacion === 'con_deuda').length,
-            no_contesta:                gestiones.filter(g => g.tipo_tipificacion === 'no_contesta').length,
-            cliente_no_interesado:      gestiones.filter(g => g.tipo_tipificacion === 'cliente_no_interesado').length,
-            empresa_con_sustento_valido:gestiones.filter(g => g.tipo_tipificacion === 'empresa_con_sustento_valido').length,
+            interesado:                  gestiones.filter(g => g.tipo_tipificacion === 'interesado').length,
+            cliente_claro:               gestiones.filter(g => g.tipo_tipificacion === 'cliente_claro').length,
+            sin_contacto:                gestiones.filter(g => g.tipo_tipificacion === 'sin_contacto').length,
+            con_deuda:                   gestiones.filter(g => g.tipo_tipificacion === 'con_deuda').length,
+            no_contesta:                 gestiones.filter(g => g.tipo_tipificacion === 'no_contesta').length,
+            cliente_no_interesado:       gestiones.filter(g => g.tipo_tipificacion === 'cliente_no_interesado').length,
+            empresa_con_sustento_valido: gestiones.filter(g => g.tipo_tipificacion === 'empresa_con_sustento_valido').length,
         };
 
         res.json({
-            metricas: { totalGestiones, empresasAsignadas, interesados: interesados.length, ganadas: ganadas.length, cfTotal, tasaEfectividad },
+            metricas: { totalGestiones, empresasEnCartera, interesados: interesados.length, ganadas: ganadas.length, cfTotal, tasaEfectividad },
             rendimientoPorAsesor,
             kpis: { funnelStages, ventasPorProducto, gestionesPorTipo },
             actPendientes,
@@ -174,4 +190,3 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
 });
 
 module.exports = router;
-/*chau*/

@@ -212,9 +212,9 @@ const DashboardSistemas = () => {
                                     <div className="rendimiento-nombre">{a.nombre}</div>
                                     <div className="rendimiento-metricas">
                                         <div className="rend-row">
-                                            <span className="rend-label">Asignadas</span>
-                                            <div className="rend-barra-bg"><div className="rend-barra-fill" style={{ width: `${(a.asignadas / maxAsig) * 100}%`, background: '#3949ab' }} /></div>
-                                            <span className="rend-val">{a.asignadas}</span>
+                                            <span className="rend-label">En Cartera</span>
+                                            <div className="rend-barra-bg"><div className="rend-barra-fill" style={{ width: `${(a.enCartera / maxAsig) * 100}%`, background: '#3949ab' }} /></div>
+                                            <span className="rend-val">{a.enCartera}</span>
                                         </div>
                                         <div className="rend-row">
                                             <span className="rend-label">Gestiones</span>
@@ -223,7 +223,7 @@ const DashboardSistemas = () => {
                                         </div>
                                         <div className="rend-row">
                                             <span className="rend-label">Interesados</span>
-                                            <div className="rend-barra-bg"><div className="rend-barra-fill" style={{ width: `${a.asignadas > 0 ? (a.interesados / a.asignadas) * 100 : 0}%`, background: '#f57f17' }} /></div>
+                                            <div className="rend-barra-bg"><div className="rend-barra-fill" style={{ width: `${a.enCartera > 0 ? (a.interesados / a.enCartera) * 100 : 0}%`, background: '#f57f17' }} /></div>
                                             <span className="rend-val">{a.interesados}</span>
                                         </div>
                                         <div className="rend-row">

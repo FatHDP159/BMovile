@@ -18,7 +18,7 @@ const parseFecha = (val) => {
     return f;
 };
 
-// POST - Importar historial de gestiones
+// POST - Importar historial de gestiones (upsert por ruc + asesor + fecha)
 router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) => {
     try {
         if (!req.files?.archivo) return res.status(400).json({ message: 'No se recibió archivo' });
@@ -29,6 +29,7 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
         const filas = xlsx.utils.sheet_to_json(hoja, { defval: null, blankrows: false, raw: false });
 
         let insertados = 0;
+        let actualizados = 0;
         const errores = [];
         const asesoresCache = {};
 
@@ -57,16 +58,13 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
                 const fecha = parseFecha(fechaStr);
                 if (!fecha) { errores.push({ fila: i+2, error: `Fecha inválida: ${fechaStr}` }); continue; }
 
-                // fecha_ganada
                 const fechaGanadaStr = fila['fecha_ganada'] ? String(fila['fecha_ganada']).trim() : null;
                 const fechaGanada = fechaGanadaStr ? parseFecha(fechaGanadaStr) : null;
 
-                // Buscar empresa
                 const empresa = await BdGeneral.findOne({ ruc });
                 const segmento    = empresa?.segmento    || fila['segmento']     || null;
                 const totalLineas = empresa?.lineas?.total || Number(fila['total_lineas'] || 0);
 
-                // Oportunidad
                 let oportunidad = undefined;
                 if (tipo === 'interesado') {
                     const producto  = fila['producto']           ? String(fila['producto']).trim()           : null;
@@ -80,7 +78,18 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
                     };
                 }
 
-                const gestion = new Gestion({
+                // Calcular rango de fecha ±1 día para buscar coincidencia
+                const fechaInicio = new Date(fecha); fechaInicio.setUTCHours(0,0,0,0);
+                const fechaFin    = new Date(fecha); fechaFin.setUTCHours(23,59,59,999);
+
+                // Buscar gestión existente por ruc + asesor + fecha
+                const existente = await Gestion.findOne({
+                    ruc,
+                    'asesor.id_asesor': asesor._id,
+                    'fechas.fecha_tipificacion': { $gte: fechaInicio, $lte: fechaFin },
+                });
+
+                const gestionData = {
                     ruc,
                     razon_social: fila['razon_social'] ? String(fila['razon_social']).trim() : '',
                     segmento,
@@ -90,23 +99,42 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
                         dni:      fila['dni_contacto']      ? String(fila['dni_contacto']).trim()      : null,
                         telefono: fila['telefono_contacto'] ? String(fila['telefono_contacto']).trim() : null,
                     },
-                    asesor: { id_asesor: asesor._id },
-                    fechas: {
-                        fecha_tipificacion: fecha,
-                        fecha_ganada: fechaGanada,
-                    },
+                    'asesor.id_asesor': asesor._id,
+                    'fechas.fecha_tipificacion': fecha,
+                    'fechas.fecha_ganada': fechaGanada,
                     tipo_tipificacion: tipo,
                     ...(oportunidad && { oportunidad }),
-                });
+                };
 
-                await gestion.save();
-                insertados++;
+                if (existente) {
+                    await Gestion.findByIdAndUpdate(existente._id, { $set: gestionData });
+                    actualizados++;
+                } else {
+                    const nueva = new Gestion({
+                        ruc,
+                        razon_social: fila['razon_social'] ? String(fila['razon_social']).trim() : '',
+                        segmento,
+                        total_lineas: totalLineas,
+                        contacto: {
+                            nombre:   fila['nombre_contacto']   ? String(fila['nombre_contacto']).trim()   : null,
+                            dni:      fila['dni_contacto']      ? String(fila['dni_contacto']).trim()      : null,
+                            telefono: fila['telefono_contacto'] ? String(fila['telefono_contacto']).trim() : null,
+                        },
+                        asesor: { id_asesor: asesor._id },
+                        fechas: { fecha_tipificacion: fecha, fecha_ganada: fechaGanada },
+                        tipo_tipificacion: tipo,
+                        ...(oportunidad && { oportunidad }),
+                    });
+                    await nueva.save();
+                    insertados++;
+                }
+
             } catch (err) {
                 errores.push({ fila: i+2, error: err.message });
             }
         }
 
-        res.json({ message: 'Importación completada', insertados, errores: errores.slice(0, 20) });
+        res.json({ message: 'Importación completada', insertados, actualizados, errores: errores.slice(0, 20) });
     } catch (error) {
         res.status(500).json({ message: 'Error al importar historial', error: error.message });
     }

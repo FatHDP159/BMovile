@@ -11,6 +11,7 @@ const dashboardRoutes = require('./interfaces/routes/dashboard.routes');
 const sistemasRoutes = require('./interfaces/routes/sistemas.routes');
 const importarRoutes = require('./interfaces/routes/importar.routes');
 const notificacionesRoutes = require('./interfaces/routes/notificaciones.routes');
+const historialRoutes = require('./interfaces/routes/historial.routes');
 const iniciarCron = require('./infrastructure/database/cron');
 
 require('dotenv').config();
@@ -41,7 +42,9 @@ app.use('/api/solicitudes', solicitudesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sistemas', sistemasRoutes);
 app.use('/api/importar', importarRoutes);
+app.use('/api/historial', historialRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
+
 
 // Ruta de prueba (esto confirmará que el 502 desapareció)
 app.get('/', (req, res) => {

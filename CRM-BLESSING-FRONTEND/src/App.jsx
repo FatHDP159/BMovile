@@ -14,6 +14,7 @@ import Buscar from './pages/Buscar';
 import GestionesSupervisor from './pages/GestionesSupervisor';
 import Solicitudes from './pages/Solicitudes';
 import CalendarioSupervisor from './pages/CalendarioSupervisor';
+import Historial from './pages/Historial';
 import NotFound from './pages/NotFound';
 
 const App = () => {
@@ -36,6 +37,7 @@ const App = () => {
       <Route path="/gestiones-supervisor" element={<PrivateRoute roles={['supervisor', 'sistemas']}><Layout><GestionesSupervisor /></Layout></PrivateRoute>} />
       <Route path="/solicitudes" element={<PrivateRoute roles={['supervisor', 'sistemas']}><Layout><Solicitudes /></Layout></PrivateRoute>} />
       <Route path="/calendario-supervisor" element={<PrivateRoute roles={['supervisor']}><Layout><CalendarioSupervisor /></Layout></PrivateRoute>} />
+      <Route path="/historial" element={<PrivateRoute roles={['sistemas']}><Layout><Historial /></Layout></PrivateRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -8,7 +8,8 @@ const Objetivo = require('../../domain/objetivos/objetivos.model.js');
 const User = require('../../domain/users/user.model.js');
 
 const calcDiasRango = (inicio, fin) => {
-    return Math.max(1, Math.round((fin - inicio) / 86400000) + 1);
+    const diffMs = fin.setHours(23,59,59,999) - inicio.setHours(0,0,0,0);
+    return Math.max(1, Math.round(diffMs / 86400000));
 };
 
 // Helper — fix fecha fin a 23:59:59

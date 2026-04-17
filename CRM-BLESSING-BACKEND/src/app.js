@@ -1,5 +1,6 @@
 const express = require('express');
-const cors = require('cors'); // Solo una vez aquí arriba
+const cors = require('cors');
+const fileUpload = require('express-fileupload');
 const connectDB = require('./config/database');
 const authRoutes = require('./interfaces/routes/auth.routes');
 const userRoutes = require('./interfaces/routes/users.routes');
@@ -10,25 +11,27 @@ const solicitudesRoutes = require('./interfaces/routes/solicitudes.routes');
 const dashboardRoutes = require('./interfaces/routes/dashboard.routes');
 const sistemasRoutes = require('./interfaces/routes/sistemas.routes');
 const importarRoutes = require('./interfaces/routes/importar.routes');
-const notificacionesRoutes = require('./interfaces/routes/notificaciones.routes');
 const historialRoutes = require('./interfaces/routes/historial.routes');
+const notificacionesRoutes = require('./interfaces/routes/notificaciones.routes');
 const iniciarCron = require('./infrastructure/database/cron');
 
 require('dotenv').config();
 
 const app = express();
 
-// --- CONFIGURACIÓN DE MIDDLEWARES ---
-
-// Modificamos el CORS para que acepte cualquier origen por ahora (mientras configuras Vercel)
+// --- MIDDLEWARES ---
 app.use(cors({
-    origin: '*', // Permitir todos los orígenes temporalmente
+    origin: '*',
     credentials: true,
 }));
 
 app.use(express.json());
+app.use(fileUpload({
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB máx
+    abortOnLimit: true,
+}));
 
-// --- CONEXIÓN Y LOGICA ---
+// --- CONEXIÓN Y CRON ---
 connectDB();
 iniciarCron();
 
@@ -45,8 +48,6 @@ app.use('/api/importar', importarRoutes);
 app.use('/api/historial', historialRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 
-
-// Ruta de prueba (esto confirmará que el 502 desapareció)
 app.get('/', (req, res) => {
     res.json({ message: '✅ CRM Blessing API corriendo' });
 });

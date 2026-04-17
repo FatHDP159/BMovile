@@ -146,7 +146,7 @@ const DashboardSupervisor = () => {
                 ) : (
                     <div className="rendimiento-grid">
                         {rendimientoPorAsesor?.map(a => {
-                            const maxAsig = Math.max(...(rendimientoPorAsesor?.map(x => x.asignadas) || [1]), 1);
+                            const maxAsig = Math.max(...(rendimientoPorAsesor?.map(x => x.enCartera) || [1]), 1);
                             const maxGest = Math.max(...(rendimientoPorAsesor?.map(x => x.gestiones) || [1]), 1);
                             const maxGan = Math.max(...(rendimientoPorAsesor?.map(x => x.ganadas) || [1]), 1);
                             return (

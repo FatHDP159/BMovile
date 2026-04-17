@@ -1,9 +1,18 @@
 const Actividad = require('../../domain/actividades/actividades.model.js');
 
+// Helper — normaliza fecha a mediodia Peru (GMT-5) para evitar desfase
+const normalizarFecha = (fecha) => {
+    const f = new Date(fecha);
+    f.setUTCHours(12, 0, 0, 0); // mediodía UTC = 7am Peru, nunca cae en día anterior
+    return f;
+};
+
 const actividadesRepository = {
 
     create: async (data) => {
-        const actividad = new Actividad(data);
+        const dataFixed = { ...data };
+        if (dataFixed.fecha) dataFixed.fecha = normalizarFecha(dataFixed.fecha);
+        const actividad = new Actividad(dataFixed);
         return await actividad.save();
     },
 
@@ -12,17 +21,21 @@ const actividadesRepository = {
     },
 
     findByAsesorAndWeek: async (asesor_id, fechaInicio, fechaFin) => {
+        const inicio = new Date(fechaInicio);
+        inicio.setUTCHours(0, 0, 0, 0);
+        const fin = new Date(fechaFin);
+        fin.setUTCHours(23, 59, 59, 999);
         return await Actividad.find({
             asesor: asesor_id,
-            fecha: { $gte: fechaInicio, $lte: fechaFin },
+            fecha: { $gte: inicio, $lte: fin },
         }).sort({ fecha: 1, hora: 1 });
     },
 
     findByAsesorAndDay: async (asesor_id, fecha) => {
         const inicio = new Date(fecha);
-        inicio.setHours(0, 0, 0, 0);
+        inicio.setUTCHours(0, 0, 0, 0);
         const fin = new Date(fecha);
-        fin.setHours(23, 59, 59, 999);
+        fin.setUTCHours(23, 59, 59, 999);
         return await Actividad.find({
             asesor: asesor_id,
             fecha: { $gte: inicio, $lte: fin },
@@ -41,7 +54,9 @@ const actividadesRepository = {
     },
 
     update: async (id, data) => {
-        return await Actividad.findByIdAndUpdate(id, data, { returnDocument: 'after' });
+        const dataFixed = { ...data };
+        if (dataFixed.fecha) dataFixed.fecha = normalizarFecha(dataFixed.fecha);
+        return await Actividad.findByIdAndUpdate(id, dataFixed, { returnDocument: 'after' });
     },
 
     delete: async (id) => {

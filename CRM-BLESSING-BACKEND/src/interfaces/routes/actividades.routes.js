@@ -4,6 +4,10 @@ const actividadesRepository = require('../../infrastructure/repositories/activid
 const { verifyToken } = require('../../infrastructure/middlewares/auth.middleware');
 const { verifyRole } = require('../../infrastructure/middlewares/roles.middleware');
 
+// Helper zona horaria
+const fechaInicioDia = (fecha) => { const f = new Date(fecha); f.setUTCHours(0,0,0,0); return f; };
+const fechaFinDia    = (fecha) => { const f = new Date(fecha); f.setUTCHours(23,59,59,999); return f; };
+
 // GET - Todas las actividades del asesor
 router.get('/', verifyToken, verifyRole('asesor'), async (req, res) => {
     try {
@@ -20,8 +24,8 @@ router.get('/semana', verifyToken, verifyRole('asesor'), async (req, res) => {
         const { fecha_inicio, fecha_fin } = req.query;
         const actividades = await actividadesRepository.findByAsesorAndWeek(
             req.user.id,
-            new Date(fecha_inicio),
-            new Date(fecha_fin)
+            fechaInicioDia(fecha_inicio),
+            fechaFinDia(fecha_fin)
         );
         res.json(actividades);
     } catch (error) {
@@ -49,21 +53,17 @@ router.get('/pendientes', verifyToken, verifyRole('asesor'), async (req, res) =>
     }
 });
 
-// GET - Actividades por semana (supervisor - propio + asesores)
+// GET - Actividades por semana (supervisor)
 router.get('/supervisor/semana', verifyToken, verifyRole('supervisor'), async (req, res) => {
     try {
         const { fecha_inicio, fecha_fin, asesor_id } = req.query;
         const Actividad = require('../../domain/actividades/actividades.model.js');
         const filtro = {
-            fecha: { $gte: new Date(fecha_inicio), $lte: new Date(fecha_fin) },
+            fecha: { $gte: fechaInicioDia(fecha_inicio), $lte: fechaFinDia(fecha_fin) },
         };
-        // Si filtra por asesor específico, solo ese; si no, todos los asesores + supervisor
         if (asesor_id) {
             filtro.asesor = asesor_id;
         } else {
-            // Excluir tareas de asesores (solo ver llamada, reunion, enviar_informacion, seguimiento)
-            // Para las del supervisor propio, mostrar todas
-            // Usamos $or: propias (todas) o de otros (sin tarea)
             filtro.$or = [
                 { asesor: req.user.id },
                 { asesor: { $ne: req.user.id }, tipo: { $in: ['llamada', 'reunion', 'enviar_informacion', 'seguimiento'] } }
@@ -82,8 +82,8 @@ router.get('/supervisor/semana', verifyToken, verifyRole('supervisor'), async (r
 router.get('/supervisor/hoy', verifyToken, verifyRole('supervisor'), async (req, res) => {
     try {
         const Actividad = require('../../domain/actividades/actividades.model.js');
-        const inicio = new Date(); inicio.setHours(0,0,0,0);
-        const fin = new Date(); fin.setHours(23,59,59,999);
+        const inicio = new Date(); inicio.setUTCHours(0,0,0,0);
+        const fin = new Date(); fin.setUTCHours(23,59,59,999);
         const actividades = await Actividad.find({
             fecha: { $gte: inicio, $lte: fin },
             $or: [

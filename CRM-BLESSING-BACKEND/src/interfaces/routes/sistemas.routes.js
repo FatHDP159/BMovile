@@ -7,9 +7,16 @@ const Actividad = require('../../domain/actividades/actividades.model.js');
 const Objetivo = require('../../domain/objetivos/objetivos.model.js');
 const User = require('../../domain/users/user.model.js');
 
-// Calcular días en el rango para proyectar objetivo diario
 const calcDiasRango = (inicio, fin) => {
     return Math.max(1, Math.round((fin - inicio) / 86400000) + 1);
+};
+
+// Helper — fix fecha fin a 23:59:59
+const fechaFin = (fecha_hasta) => {
+    if (!fecha_hasta) return new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+    const f = new Date(fecha_hasta);
+    f.setHours(23, 59, 59, 999);
+    return f;
 };
 
 // GET - Dashboard sistemas
@@ -18,37 +25,28 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
         const { fecha_desde, fecha_hasta, asesores: asesoresParam, granularidad = 'mensual' } = req.query;
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const fin = fecha_hasta ? new Date(fecha_hasta) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+        const fin = fechaFin(fecha_hasta);
         const filtroFecha = { $gte: inicio, $lte: fin };
         const diasRango = calcDiasRango(inicio, fin);
 
-        // Asesores a mostrar
         let asesores = await User.find({ rol_user: 'asesor', estado_user: 'activo' }).select('_id nombre_user');
         if (asesoresParam) {
             const ids = Array.isArray(asesoresParam) ? asesoresParam : asesoresParam.split(',');
             asesores = asesores.filter(a => ids.includes(a._id.toString()));
         }
 
-        // Gestiones del periodo
         const gestiones = await Gestion.find({ 'fechas.fecha_tipificacion': filtroFecha });
+        const reuniones = await Actividad.find({ tipo: 'reunion', estado: 'completado', fecha: filtroFecha });
 
-        // Reuniones completadas del periodo
-        const reuniones = await Actividad.find({
-            tipo: 'reunion', estado: 'completado', fecha: filtroFecha,
-        });
-
-        // Objetivo global
         const objGlobal = await Objetivo.findOne({ tipo: 'global' });
         const objetivoDiario = objGlobal?.objetivo_diario || 0;
 
-        // KPIs maestros
         const totalTipificaciones = gestiones.length;
         const totalOportunidades = gestiones.filter(g => g.tipo_tipificacion === 'interesado').length;
         const totalCitas = reuniones.length;
         const conversionBase = totalTipificaciones > 0 ? Math.round((totalOportunidades / totalTipificaciones) * 100) : 0;
         const efectividadComercial = totalOportunidades > 0 ? Math.round((totalCitas / totalOportunidades) * 100) : 0;
 
-        // Por asesor
         const tablaAsesores = await Promise.all(asesores.map(async (asesor) => {
             const gAsesor = gestiones.filter(g => g.asesor?.id_asesor?.toString() === asesor._id.toString());
             const opAsesor = gAsesor.filter(g => g.tipo_tipificacion === 'interesado').length;
@@ -67,14 +65,12 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
             };
         }));
 
-        // Funnel
         const funnelData = [
             { etapa: 'Tipificaciones', cantidad: totalTipificaciones },
             { etapa: 'Oportunidades',  cantidad: totalOportunidades },
             { etapa: 'Citas',          cantidad: totalCitas },
         ];
 
-        // Serie temporal para granularidad
         const serieData = [];
         if (granularidad === 'diario') {
             const dias = Math.min(diasRango, 31);
@@ -104,7 +100,6 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
                 semanaInicio.setDate(semanaInicio.getDate() + 7);
             }
         } else {
-            // mensual
             const meses = {};
             gestiones.forEach(g => {
                 const d = new Date(g.fechas?.fecha_tipificacion);

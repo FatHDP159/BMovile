@@ -4,7 +4,6 @@ const BdGeneral = require('../../domain/db_general/db_general.models.js');
 const gestionesRepository = {
 
     create: async (data) => {
-        // Obtener segmento y total_lineas de la empresa
         const empresa = await BdGeneral.findOne({ ruc: data.ruc });
         const gestion = new Gestion({
             ...data,
@@ -14,7 +13,6 @@ const gestionesRepository = {
         });
         const saved = await gestion.save();
 
-        // Actualizar estado de la empresa a trabajada
         const fechaDesasignacion = new Date();
         fechaDesasignacion.setDate(fechaDesasignacion.getDate() + 30);
         await BdGeneral.findOneAndUpdate(
@@ -56,7 +54,16 @@ const gestionesRepository = {
     },
 
     update: async (id, data) => {
-        return await Gestion.findByIdAndUpdate(id, data, { returnDocument: 'after' });
+        // Si se marca como Negociada Aprobada, guardar fecha_ganada
+        const updateData = { ...data };
+        if (data.oportunidad?.estado === 'Negociada Aprobada') {
+            updateData['fechas.fecha_ganada'] = new Date();
+        }
+        // Si se cambia de Negociada Aprobada a otro estado, limpiar fecha_ganada
+        if (data.oportunidad?.estado && data.oportunidad.estado !== 'Negociada Aprobada') {
+            updateData['fechas.fecha_ganada'] = null;
+        }
+        return await Gestion.findByIdAndUpdate(id, updateData, { returnDocument: 'after' });
     },
 
     findFunnel: async ({ id_asesor, busqueda, estados, segmento, lineas_min, lineas_max, fecha_desde, fecha_hasta, page = 1, limit = 50 }) => {

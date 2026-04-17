@@ -8,21 +8,21 @@ import './Usuarios.css';
 import './Funnel.css';
 
 const ESTADOS = [
-    { key: 'Identificada',          label: 'Identificada',          color: 'estado-identificada' },
-    { key: 'Propuesta Entregada',   label: 'Propuesta Entregada',   color: 'estado-propuesta' },
-    { key: 'Negociación',           label: 'Negociación',           color: 'estado-negociacion' },
-    { key: 'Negociada Aprobada',    label: 'Negociada Aprobada',    color: 'estado-aprobada' },
-    { key: 'Negociada Rechazada',   label: 'Negociada Rechazada',   color: 'estado-rechazada' },
+    { key: 'Identificada', label: 'Identificada', color: 'estado-identificada' },
+    { key: 'Propuesta Entregada', label: 'Propuesta Entregada', color: 'estado-propuesta' },
+    { key: 'Negociación', label: 'Negociación', color: 'estado-negociacion' },
+    { key: 'Negociada Aprobada', label: 'Negociada Aprobada', color: 'estado-aprobada' },
+    { key: 'Negociada Rechazada', label: 'Negociada Rechazada', color: 'estado-rechazada' },
 ];
 
 const ORDEN_ESTADOS = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
 const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
-const SEGMENTOS = ['Micro', 'Pyme' , 'Mayores' , 'Empresas', 'Gobierno'];
+const SEGMENTOS = ['Micro', 'Pyme', 'Mayores', 'Empresas', 'Gobierno'];
 
 const fmt = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
 
 const DiasCell = ({ fechaTipificacion }) => {
@@ -44,11 +44,11 @@ const EstadoBadge = ({ estado }) => {
 const ModalGestion = ({ gestion, onClose, onGuardado }) => {
     const estadoActual = gestion.oportunidad?.estado || 'Identificada';
     const idxActual = ORDEN_ESTADOS.indexOf(estadoActual);
-    const tabInicial = ['Negociada Aprobada','Negociada Rechazada'].includes(estadoActual) ? 'Negociación' : estadoActual;
+    const tabInicial = ['Negociada Aprobada', 'Negociada Rechazada'].includes(estadoActual) ? 'Negociación' : estadoActual;
     const [tabActivo, setTabActivo] = useState(tabInicial);
     const [negociadaRes, setNegociadaRes] = useState(
         estadoActual === 'Negociada Aprobada' ? 'Aprobada' :
-        estadoActual === 'Negociada Rechazada' ? 'Rechazada' : ''
+            estadoActual === 'Negociada Rechazada' ? 'Rechazada' : ''
     );
     const [form, setForm] = useState({
         titulo: gestion.oportunidad?.titulo || '',
@@ -108,7 +108,7 @@ const ModalGestion = ({ gestion, onClose, onGuardado }) => {
                 <div className="funnel-tabs">
                     {tabsVisibles.map((tab, i) => {
                         const idxTab = ORDEN_ESTADOS.indexOf(tab);
-                        const bloqueado = idxTab < idxActual && !['Negociada Aprobada','Negociada Rechazada'].includes(estadoActual);
+                        const bloqueado = idxTab < idxActual && !['Negociada Aprobada', 'Negociada Rechazada'].includes(estadoActual);
                         const activo = tabActivo === tab;
                         return (
                             <button key={tab}
@@ -218,7 +218,7 @@ const Funnel = ({ esSupervisor = false }) => {
         setLoading(true);
         try {
             const res = await api.get(endpoint, {
-                params: { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, fecha_desde: fechaDesde, fecha_hasta: fechaHasta, estados: estadosSel, asesor: filtroAsesor, page: p, limit: 50 },
+                params: { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, fecha_desde: fechaDesde, fecha_hasta: fechaHasta, estados: estadosSel.join(','), asesor: filtroAsesor, page: p, limit: 50 },
             });
             setGestiones(res.data.gestiones);
             setTotal(res.data.total);
@@ -281,56 +281,56 @@ const Funnel = ({ esSupervisor = false }) => {
 
             <div className="table-container">
                 {loading ? <p style={{ padding: 20 }}>Cargando...</p>
-                : gestiones.length === 0 ? <p style={{ padding: 20, color: '#999' }}>No se encontraron oportunidades.</p>
-                : (
-                    <>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>RUC</th>
-                                    <th>Razón Social</th>
-                                    {esSupervisor && <th>Asesor</th>}
-                                    <th>Segmento</th>
-                                    <th>Líneas</th>
-                                    <th>Días</th>
-                                    <th>Estado</th>
-                                    <th>Sustento</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {gestiones.map(g => (
-                                    <tr key={g._id}>
-                                        <td>{fmt(g.fechas?.fecha_tipificacion)}</td>
-                                        <td style={{ fontWeight: 600, color: '#3949ab' }}>{g.ruc}</td>
-                                        <td>{g.razon_social}</td>
-                                        {esSupervisor && <td>{g.asesor?.id_asesor?.nombre_user || '—'}</td>}
-                                        <td>{g.segmento || '—'}</td>
-                                        <td>{g.total_lineas || '—'}</td>
-                                        <td><DiasCell fechaTipificacion={g.fechas?.fecha_tipificacion} /></td>
-                                        <td><EstadoBadge estado={g.oportunidad?.estado} /></td>
-                                        <td><span className={`sustento-badge ${g.oportunidad?.sustento ? 'si' : 'no'}`}>{g.oportunidad?.sustento ? 'Sí' : 'No'}</span></td>
-                                        <td>
-                                            <button className="btn-estado btn-asignar" onClick={() => setModalGestion(g)}>
-                                                <FontAwesomeIcon icon={faPen} /> Gestionar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {totalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
-                                <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} oportunidades</span>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
-                                    <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
-                                </div>
-                            </div>
+                    : gestiones.length === 0 ? <p style={{ padding: 20, color: '#999' }}>No se encontraron oportunidades.</p>
+                        : (
+                            <>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>RUC</th>
+                                            <th>Razón Social</th>
+                                            {esSupervisor && <th>Asesor</th>}
+                                            <th>Segmento</th>
+                                            <th>Líneas</th>
+                                            <th>Días</th>
+                                            <th>Estado</th>
+                                            <th>Sustento</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {gestiones.map(g => (
+                                            <tr key={g._id}>
+                                                <td>{fmt(g.fechas?.fecha_tipificacion)}</td>
+                                                <td style={{ fontWeight: 600, color: '#3949ab' }}>{g.ruc}</td>
+                                                <td>{g.razon_social}</td>
+                                                {esSupervisor && <td>{g.asesor?.id_asesor?.nombre_user || '—'}</td>}
+                                                <td>{g.segmento || '—'}</td>
+                                                <td>{g.total_lineas || '—'}</td>
+                                                <td><DiasCell fechaTipificacion={g.fechas?.fecha_tipificacion} /></td>
+                                                <td><EstadoBadge estado={g.oportunidad?.estado} /></td>
+                                                <td><span className={`sustento-badge ${g.oportunidad?.sustento ? 'si' : 'no'}`}>{g.oportunidad?.sustento ? 'Sí' : 'No'}</span></td>
+                                                <td>
+                                                    <button className="btn-estado btn-asignar" onClick={() => setModalGestion(g)}>
+                                                        <FontAwesomeIcon icon={faPen} /> Gestionar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
+                                        <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} oportunidades</span>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
+                                            <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </>
-                )}
             </div>
 
             {modalGestion && <ModalGestion gestion={modalGestion} onClose={() => setModalGestion(null)} onGuardado={() => cargar(page)} />}

@@ -138,4 +138,34 @@ router.delete("/:id", verifyToken, verifyRole("sistemas"), async (req, res) => {
     }
 });
 
+// POST - Desasignación masiva con filtros
+router.post("/desasignar-masivo", verifyToken, verifyRole("sistemas"), async (req, res) => {
+    try {
+        const { id_asesor, segmento, operador, lineas_min, lineas_max } = req.body;
+        if (!id_asesor) return res.status(400).json({ message: "id_asesor es requerido" });
+
+        const filtro = {
+            'asignacion.id_asesor': id_asesor,
+            estado_base: { $in: ['asignada', 'trabajada'] },
+        };
+        if (segmento) filtro.segmento = segmento;
+        if (operador) filtro[`lineas.${operador}`] = { $gt: 0 };
+        if (lineas_min || lineas_max) {
+            filtro['lineas.total'] = {};
+            if (lineas_min) filtro['lineas.total'].$gte = Number(lineas_min);
+            if (lineas_max) filtro['lineas.total'].$lte = Number(lineas_max);
+        }
+
+        const result = await BdGeneral.updateMany(filtro, {
+            'asignacion.id_asesor': null,
+            'asignacion.fecha_desasignacion': new Date(),
+            estado_base: 'disponible',
+        });
+
+        res.json({ message: `${result.modifiedCount} empresas desasignadas correctamente`, total: result.modifiedCount });
+    } catch (error) {
+        res.status(500).json({ message: "Error en desasignación masiva", error: error.message });
+    }
+});
+
 module.exports = router;

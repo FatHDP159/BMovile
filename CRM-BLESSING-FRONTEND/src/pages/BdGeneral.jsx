@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faDatabase, faUpload, faUserPlus, faUserMinus,
     faTrash, faUsers, faAddressBook, faChevronLeft, faChevronRight,
-    faFileExcel, faSpinner
+    faFileExcel, faSpinner, faUserXmark
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +37,12 @@ const BdGeneral = () => {
         id_asesor: '', cantidad: '', segmento: '', operador: '', lineas_min: '', lineas_max: ''
     });
 
+    const [showModalDesasignar, setShowModalDesasignar] = useState(false);
+    const [formDesasignar, setFormDesasignar] = useState({
+        id_asesor: '', segmento: '', operador: '', lineas_min: '', lineas_max: ''
+    });
+    const [desasignando, setDesasignando] = useState(false);
+
     const [showModalContactos, setShowModalContactos] = useState(false);
     const [contactosEmpresa, setContactosEmpresa] = useState(null);
 
@@ -48,35 +54,25 @@ const BdGeneral = () => {
         try {
             const res = await api.get('/bd-general/buscar', {
                 params: {
-                    busqueda,
-                    estado: filtroEstado,
-                    segmento: filtroSegmento,
-                    operador: filtroOperador,
-                    consultor: filtroConsultor,
-                    fecha_asignacion_sf: filtroFechaAsig,
-                    fecha_desasignacion_sf: filtroFechaDesasig,
-                    page: p,
-                    limit: 50,
+                    busqueda, estado: filtroEstado, segmento: filtroSegmento,
+                    operador: filtroOperador, consultor: filtroConsultor,
+                    fecha_asignacion_sf: filtroFechaAsig, fecha_desasignacion_sf: filtroFechaDesasig,
+                    page: p, limit: 50,
                 },
             });
             setEmpresas(res.data.empresas);
             setTotal(res.data.total);
             setTotalPages(res.data.totalPages);
             setPage(p);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
     }, [busqueda, filtroEstado, filtroSegmento, filtroOperador, filtroConsultor, filtroFechaAsig, filtroFechaDesasig]);
 
     const cargarAsesores = async () => {
         try {
             const res = await api.get('/users');
             setUsuarios(res.data.filter(u => u.rol_user === 'asesor' && u.estado_user === 'activo'));
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
     useEffect(() => { cargarAsesores(); }, []);
@@ -94,25 +90,17 @@ const BdGeneral = () => {
         const formData = new FormData();
         formData.append('archivo', file);
         try {
-            const res = await api.post('/importar', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            const res = await api.post('/importar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             setImportResult(res.data);
             cargarEmpresas(1);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setImportando(false);
-            fileRef.current.value = '';
-        }
+        } catch (err) { console.error(err); }
+        finally { setImportando(false); fileRef.current.value = ''; }
     };
 
     const handleAsignar = async () => {
         try {
             await api.patch(`/bd-general/${empresaSeleccionada._id}/asignar`, { id_asesor: asesorSeleccionado });
-            setShowModalAsignar(false);
-            setEmpresaSeleccionada(null);
-            setAsesorSeleccionado('');
+            setShowModalAsignar(false); setEmpresaSeleccionada(null); setAsesorSeleccionado('');
             cargarEmpresas(page);
         } catch (err) { console.error(err); }
     };
@@ -145,38 +133,35 @@ const BdGeneral = () => {
         } catch (err) { console.error(err); }
     };
 
+    const handleDesasignarMasivo = async () => {
+        if (!formDesasignar.id_asesor) return;
+        setDesasignando(true);
+        try {
+            const res = await api.post('/bd-general/desasignar-masivo', formDesasignar);
+            alert(res.data.message);
+            setShowModalDesasignar(false);
+            setFormDesasignar({ id_asesor: '', segmento: '', operador: '', lineas_min: '', lineas_max: '' });
+            cargarEmpresas(1);
+        } catch (err) { console.error(err); }
+        finally { setDesasignando(false); }
+    };
+
     const handleExportar = async () => {
         try {
             const res = await api.get('/bd-general/buscar', {
-                params: {
-                    busqueda, estado: filtroEstado, segmento: filtroSegmento,
-                    operador: filtroOperador, consultor: filtroConsultor,
-                    fecha_asignacion_sf: filtroFechaAsig, fecha_desasignacion_sf: filtroFechaDesasig,
-                    page: 1, limit: 99999,
-                },
+                params: { busqueda, estado: filtroEstado, segmento: filtroSegmento, operador: filtroOperador, consultor: filtroConsultor, fecha_asignacion_sf: filtroFechaAsig, fecha_desasignacion_sf: filtroFechaDesasig, page: 1, limit: 99999 },
             });
             const datos = res.data.empresas;
-            const filas = [['RUC', 'Razón Social', 'Distrito', 'Segmento', 'Total Líneas', 'Claro', 'Movistar', 'Entel', 'Otros',
-                'Consultor SF', 'Fecha Asig. SF', 'Fecha Desasig. SF', 'Estado', 'Asesor Asignado',
-                'Contacto Nombre', 'Contacto DNI', 'Contacto Cargo', 'Teléfonos', 'Correos']];
+            const filas = [['RUC', 'Razón Social', 'Distrito', 'Segmento', 'Total Líneas', 'Claro', 'Movistar', 'Entel', 'Otros', 'Consultor SF', 'Fecha Asig. SF', 'Fecha Desasig. SF', 'Estado', 'Asesor Asignado', 'Contacto Nombre', 'Contacto DNI', 'Contacto Cargo', 'Teléfonos', 'Correos']];
             datos.forEach(e => {
                 const contacto = e.contactos?.[0] || {};
-                filas.push([e.ruc, e.razon_social, e.distrito || '', e.segmento || '',
-                e.lineas?.total || 0, e.lineas?.claro || 0, e.lineas?.movistar || 0, e.lineas?.entel || 0, e.lineas?.otros || 0,
-                e.salesforce?.consultor || '',
-                e.salesforce?.fecha_asignada ? new Date(e.salesforce.fecha_asignada).toLocaleDateString('es-PE') : '',
-                e.salesforce?.fecha_desasignacion ? new Date(e.salesforce.fecha_desasignacion).toLocaleDateString('es-PE') : '',
-                e.estado_base || '', e.asignacion?.id_asesor?.nombre_user || '',
-                contacto.nombre || '', contacto.dni || '', contacto.cargo || '',
-                contacto.telefonos?.join(', ') || '', contacto.emails?.join(', ') || '']);
+                filas.push([e.ruc, e.razon_social, e.distrito || '', e.segmento || '', e.lineas?.total || 0, e.lineas?.claro || 0, e.lineas?.movistar || 0, e.lineas?.entel || 0, e.lineas?.otros || 0, e.salesforce?.consultor || '', e.salesforce?.fecha_asignada ? new Date(e.salesforce.fecha_asignada).toLocaleDateString('es-PE') : '', e.salesforce?.fecha_desasignacion ? new Date(e.salesforce.fecha_desasignacion).toLocaleDateString('es-PE') : '', e.estado_base || '', e.asignacion?.id_asesor?.nombre_user || '', contacto.nombre || '', contacto.dni || '', contacto.cargo || '', contacto.telefonos?.join(', ') || '', contacto.emails?.join(', ') || '']);
             });
             const csv = filas.map(fila => fila.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
-            link.download = `base_general_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
+            link.href = url; link.download = `base_general_${new Date().toISOString().split('T')[0]}.csv`; link.click();
             URL.revokeObjectURL(url);
         } catch (err) { console.error(err); }
     };
@@ -185,18 +170,17 @@ const BdGeneral = () => {
         <div>
             <div className="page-header">
                 <h1><FontAwesomeIcon icon={faDatabase} /> Base General
-                    <span style={{ fontSize: '14px', color: '#666', marginLeft: '12px', fontWeight: 'normal' }}>
-                        {total} empresas
-                    </span>
+                    <span style={{ fontSize: '14px', color: '#666', marginLeft: '12px', fontWeight: 'normal' }}>{total} empresas</span>
                 </h1>
                 <div className="import-section">
                     {importResult && (
-                        <span className="import-result">
-                            ✅ {importResult.insertados} insertados / {importResult.actualizados} actualizados
-                        </span>
+                        <span className="import-result">✅ {importResult.insertados} insertados / {importResult.actualizados} actualizados</span>
                     )}
                     <button className="btn-primary" onClick={() => setShowModalMasivo(true)}>
                         <FontAwesomeIcon icon={faUsers} /> Asignación Masiva
+                    </button>
+                    <button className="btn-primary" style={{ background: '#c62828' }} onClick={() => setShowModalDesasignar(true)}>
+                        <FontAwesomeIcon icon={faUserXmark} /> Desasignación Masiva
                     </button>
                     <button className="btn-export" onClick={handleExportar}>
                         <FontAwesomeIcon icon={faFileExcel} /> Exportar
@@ -222,10 +206,11 @@ const BdGeneral = () => {
                     <option value="descartada">Descartada</option>
                 </select>
                 <select className="filter-select" value={filtroSegmento} onChange={(e) => setFiltroSegmento(e.target.value)}>
-                    <option value="micro">Micro Empresas</option>
-                    <option value="pyme">PYME</option>
+                    <option value="">Todos los segmentos</option>
+                    <option value="micro empresas">Micro Empresas</option>
                     <option value="mayores">Mayores</option>
-                    <option value="mediana">Empresas</option>
+                    <option value="pyme">PYME</option>
+                    <option value="empresas">Empresas</option>
                 </select>
                 <select className="filter-select" value={filtroOperador} onChange={(e) => setFiltroOperador(e.target.value)}>
                     <option value="">Todos los operadores</option>
@@ -240,25 +225,15 @@ const BdGeneral = () => {
             </div>
 
             <div className="table-container">
-                {loading ? (
-                    <p style={{ padding: '20px' }}>Cargando...</p>
-                ) : (
+                {loading ? <p style={{ padding: '20px' }}>Cargando...</p> : (
                     <>
                         <table>
                             <thead>
                                 <tr>
-                                    <th>RUC</th>
-                                    <th>Razón Social</th>
-                                    <th>Distrito</th>
-                                    <th>Segmento</th>
-                                    <th>Total Líneas</th>
-                                    <th>Contactos</th>
-                                    <th>Consultor SF</th>
-                                    <th>Fecha Asig. SF</th>
-                                    <th>Fecha Desasig. SF</th>
-                                    <th>Estado</th>
-                                    <th>Asesor Asignado</th>
-                                    <th>Acciones</th>
+                                    <th>RUC</th><th>Razón Social</th><th>Distrito</th><th>Segmento</th>
+                                    <th>Total Líneas</th><th>Contactos</th><th>Consultor SF</th>
+                                    <th>Fecha Asig. SF</th><th>Fecha Desasig. SF</th><th>Estado</th>
+                                    <th>Asesor Asignado</th><th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -324,12 +299,8 @@ const BdGeneral = () => {
                     <div className="modal" style={{ maxWidth: 380, textAlign: 'center' }}>
                         <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: 44, color: '#1D2558', marginBottom: 16 }} />
                         <h2 style={{ marginBottom: 10 }}>Importando base de datos</h2>
-                        <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>
-                            Por favor espera, esto puede tardar unos segundos dependiendo del tamaño del archivo...
-                        </p>
-                        <div className="import-progress-bar">
-                            <div className="import-progress-fill" />
-                        </div>
+                        <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>Por favor espera...</p>
+                        <div className="import-progress-bar"><div className="import-progress-fill" /></div>
                         <p style={{ color: '#bbb', fontSize: 11, marginTop: 12 }}>No cierres esta ventana</p>
                     </div>
                 </div>
@@ -341,8 +312,7 @@ const BdGeneral = () => {
                     <div className="modal">
                         <h2>Asignar Empresa</h2>
                         <p style={{ marginBottom: '16px', color: '#555' }}>{empresaSeleccionada?.razon_social}</p>
-                        <div className="form-field">
-                            <label>Selecciona un asesor</label>
+                        <div className="form-field"><label>Selecciona un asesor</label>
                             <select className="form-input" value={asesorSeleccionado} onChange={(e) => setAsesorSeleccionado(e.target.value)}>
                                 <option value="">-- Seleccionar --</option>
                                 {usuarios.map((u) => <option key={u._id} value={u._id}>{u.nombre_user} - {u.dni_user}</option>)}
@@ -402,24 +372,68 @@ const BdGeneral = () => {
                 </div>
             )}
 
+            {/* Modal Desasignación Masiva */}
+            {showModalDesasignar && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2><FontAwesomeIcon icon={faUserXmark} style={{ marginRight: 8, color: '#c62828' }} />Desasignación Masiva</h2>
+                        <p style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>
+                            Desasigna todas las empresas del asesor seleccionado según los filtros opcionales.
+                        </p>
+                        <div className="form-field"><label>Asesor *</label>
+                            <select className="form-input" value={formDesasignar.id_asesor} onChange={(e) => setFormDesasignar({ ...formDesasignar, id_asesor: e.target.value })}>
+                                <option value="">-- Seleccionar asesor --</option>
+                                {usuarios.map((u) => <option key={u._id} value={u._id}>{u.nombre_user} - {u.dni_user}</option>)}
+                            </select>
+                        </div>
+                        <div className="form-field"><label>Segmento (opcional)</label>
+                            <select className="form-input" value={formDesasignar.segmento} onChange={(e) => setFormDesasignar({ ...formDesasignar, segmento: e.target.value })}>
+                                <option value="">Todos los segmentos</option>
+                                <option value="micro empresas">Micro Empresas</option>
+                                <option value="mayores">Mayores</option>
+                                <option value="pyme">PYME</option>
+                                <option value="empresas">Empresas</option>
+                            </select>
+                        </div>
+                        <div className="form-field"><label>Operador (opcional)</label>
+                            <select className="form-input" value={formDesasignar.operador} onChange={(e) => setFormDesasignar({ ...formDesasignar, operador: e.target.value })}>
+                                <option value="">Todos</option>
+                                <option value="claro">Claro</option>
+                                <option value="movistar">Movistar</option>
+                                <option value="entel">Entel</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                        <div className="form-field"><label>Líneas mínimas (opcional)</label>
+                            <input type="number" className="form-input" placeholder="Ej: 5" value={formDesasignar.lineas_min} onChange={(e) => setFormDesasignar({ ...formDesasignar, lineas_min: e.target.value })} min="0" />
+                        </div>
+                        <div className="form-field"><label>Líneas máximas (opcional)</label>
+                            <input type="number" className="form-input" placeholder="Ej: 30" value={formDesasignar.lineas_max} onChange={(e) => setFormDesasignar({ ...formDesasignar, lineas_max: e.target.value })} min="0" />
+                        </div>
+                        <div className="modal-actions">
+                            <button className="btn-secondary" onClick={() => setShowModalDesasignar(false)}>Cancelar</button>
+                            <button className="btn-primary" style={{ background: '#c62828' }} onClick={handleDesasignarMasivo} disabled={!formDesasignar.id_asesor || desasignando}>
+                                {desasignando ? 'Desasignando...' : <><FontAwesomeIcon icon={faUserXmark} /> Desasignar</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modal Contactos */}
             {showModalContactos && (
                 <div className="modal-overlay">
                     <div className="modal" style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h2><FontAwesomeIcon icon={faAddressBook} /> Contactos — {contactosEmpresa?.razon_social}</h2>
                         <table className="contactos-modal-table">
-                            <thead>
-                                <tr><th>Nombre</th><th>DNI</th><th>Cargo</th><th>Teléfonos</th><th>Correos</th></tr>
-                            </thead>
+                            <thead><tr><th>Nombre</th><th>DNI</th><th>Cargo</th><th>Teléfonos</th><th>Correos</th></tr></thead>
                             <tbody>
                                 {contactosEmpresa?.contactos?.length === 0 ? (
                                     <tr><td colSpan={5} style={{ textAlign: 'center', color: '#999' }}>Sin contactos registrados</td></tr>
                                 ) : (
                                     contactosEmpresa?.contactos?.map((c, i) => (
                                         <tr key={i}>
-                                            <td>{c.nombre || '—'}</td>
-                                            <td>{c.dni || '—'}</td>
-                                            <td>{c.cargo || '—'}</td>
+                                            <td>{c.nombre || '—'}</td><td>{c.dni || '—'}</td><td>{c.cargo || '—'}</td>
                                             <td>{c.telefonos?.length > 0 ? c.telefonos.join(', ') : '—'}</td>
                                             <td>{c.emails?.length > 0 ? c.emails.join(', ') : '—'}</td>
                                         </tr>

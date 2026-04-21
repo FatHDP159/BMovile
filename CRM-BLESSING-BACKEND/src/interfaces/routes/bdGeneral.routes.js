@@ -168,4 +168,50 @@ router.post("/desasignar-masivo", verifyToken, verifyRole("sistemas"), async (re
     }
 });
 
+// POST - Asignar por lista Excel
+router.post("/asignar-lista", verifyToken, verifyRole("sistemas"), async (req, res) => {
+    try {
+        if (!req.files?.archivo) return res.status(400).json({ message: "No se recibió archivo" });
+
+        const xlsx = require('xlsx');
+        const workbook = xlsx.read(req.files.archivo.data, { type: 'buffer' });
+        const hoja = workbook.Sheets[workbook.SheetNames[0]];
+        const filas = xlsx.utils.sheet_to_json(hoja, { defval: null, blankrows: false, raw: false });
+
+        const User = require('../../domain/users/user.model.js');
+        const asesoresCache = {};
+        let asignados = 0;
+        let errores = [];
+
+        for (const [i, fila] of filas.entries()) {
+            const ruc       = fila['ruc']       ? String(fila['ruc']).trim()       : null;
+            const dniAsesor = fila['asesor_dni'] ? String(fila['asesor_dni']).trim() : null;
+
+            if (!ruc || !dniAsesor) { errores.push({ fila: i+2, error: 'Faltan ruc o asesor_dni' }); continue; }
+
+            if (!asesoresCache[dniAsesor]) {
+                const asesor = await User.findOne({ dni_user: dniAsesor, rol_user: 'asesor' });
+                if (!asesor) { errores.push({ fila: i+2, error: `Asesor no encontrado: ${dniAsesor}` }); continue; }
+                asesoresCache[dniAsesor] = asesor;
+            }
+            const asesor = asesoresCache[dniAsesor];
+
+            const empresa = await BdGeneral.findOne({ ruc });
+            if (!empresa) { errores.push({ fila: i+2, error: `RUC no encontrado: ${ruc}` }); continue; }
+
+            await BdGeneral.findByIdAndUpdate(empresa._id, {
+                'asignacion.id_asesor': asesor._id,
+                'asignacion.fecha_asignada': new Date(),
+                'asignacion.fecha_desasignacion': null,
+                estado_base: 'asignada',
+            });
+            asignados++;
+        }
+
+        res.json({ message: `${asignados} empresas asignadas`, asignados, errores: errores.slice(0, 20) });
+    } catch (error) {
+        res.status(500).json({ message: "Error al asignar por lista", error: error.message });
+    }
+});
+
 module.exports = router;

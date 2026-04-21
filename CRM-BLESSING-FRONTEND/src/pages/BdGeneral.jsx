@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faDatabase, faUpload, faUserPlus, faUserMinus,
     faTrash, faUsers, faAddressBook, faChevronLeft, faChevronRight,
-    faFileExcel, faSpinner, faUserXmark
+    faFileExcel, faSpinner, faUserXmark, faListCheck
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -43,10 +43,14 @@ const BdGeneral = () => {
     });
     const [desasignando, setDesasignando] = useState(false);
 
+    const [asignandoLista, setAsignandoLista] = useState(false);
+    const [listaResult, setListaResult] = useState(null);
+
     const [showModalContactos, setShowModalContactos] = useState(false);
     const [contactosEmpresa, setContactosEmpresa] = useState(null);
 
     const fileRef = useRef();
+    const fileListaRef = useRef();
     const searchTimeout = useRef();
 
     const cargarEmpresas = useCallback(async (p = 1) => {
@@ -95,6 +99,23 @@ const BdGeneral = () => {
             cargarEmpresas(1);
         } catch (err) { console.error(err); }
         finally { setImportando(false); fileRef.current.value = ''; }
+    };
+
+    const handleAsignarLista = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setAsignandoLista(true);
+        setListaResult(null);
+        const formData = new FormData();
+        formData.append('archivo', file);
+        try {
+            const res = await api.post('/bd-general/asignar-lista', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setListaResult(res.data);
+            cargarEmpresas(1);
+        } catch (err) { console.error(err); }
+        finally { setAsignandoLista(false); fileListaRef.current.value = ''; }
     };
 
     const handleAsignar = async () => {
@@ -176,12 +197,19 @@ const BdGeneral = () => {
                     {importResult && (
                         <span className="import-result">✅ {importResult.insertados} insertados / {importResult.actualizados} actualizados</span>
                     )}
+                    {listaResult && (
+                        <span className="import-result">✅ {listaResult.asignados} asignados por lista</span>
+                    )}
                     <button className="btn-primary" onClick={() => setShowModalMasivo(true)}>
                         <FontAwesomeIcon icon={faUsers} /> Asignación Masiva
                     </button>
                     <button className="btn-primary" style={{ background: '#c62828' }} onClick={() => setShowModalDesasignar(true)}>
                         <FontAwesomeIcon icon={faUserXmark} /> Desasignación Masiva
                     </button>
+                    <button className="btn-primary" style={{ background: '#2e7d32' }} onClick={() => fileListaRef.current.click()}>
+                        <FontAwesomeIcon icon={faListCheck} /> Asignar por Lista
+                    </button>
+                    <input type="file" ref={fileListaRef} style={{ display: 'none' }} accept=".xlsx,.xls" onChange={handleAsignarLista} />
                     <button className="btn-export" onClick={handleExportar}>
                         <FontAwesomeIcon icon={faFileExcel} /> Exportar
                     </button>
@@ -306,6 +334,19 @@ const BdGeneral = () => {
                 </div>
             )}
 
+            {/* Modal Asignando por Lista */}
+            {asignandoLista && (
+                <div className="modal-overlay">
+                    <div className="modal" style={{ maxWidth: 380, textAlign: 'center' }}>
+                        <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: 44, color: '#2e7d32', marginBottom: 16 }} />
+                        <h2 style={{ marginBottom: 10 }}>Asignando empresas</h2>
+                        <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>Por favor espera...</p>
+                        <div className="import-progress-bar"><div className="import-progress-fill" /></div>
+                        <p style={{ color: '#bbb', fontSize: 11, marginTop: 12 }}>No cierres esta ventana</p>
+                    </div>
+                </div>
+            )}
+
             {/* Modal Asignar Individual */}
             {showModalAsignar && (
                 <div className="modal-overlay">
@@ -377,9 +418,7 @@ const BdGeneral = () => {
                 <div className="modal-overlay">
                     <div className="modal">
                         <h2><FontAwesomeIcon icon={faUserXmark} style={{ marginRight: 8, color: '#c62828' }} />Desasignación Masiva</h2>
-                        <p style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>
-                            Desasigna todas las empresas del asesor seleccionado según los filtros opcionales.
-                        </p>
+                        <p style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>Desasigna empresas del asesor seleccionado según los filtros opcionales.</p>
                         <div className="form-field"><label>Asesor *</label>
                             <select className="form-input" value={formDesasignar.id_asesor} onChange={(e) => setFormDesasignar({ ...formDesasignar, id_asesor: e.target.value })}>
                                 <option value="">-- Seleccionar asesor --</option>

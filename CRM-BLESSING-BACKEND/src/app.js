@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const fileUpload = require('express-fileupload');
 const connectDB = require('./config/database');
 const authRoutes = require('./interfaces/routes/auth.routes');
 const userRoutes = require('./interfaces/routes/users.routes');
@@ -20,16 +19,8 @@ require('dotenv').config();
 const app = express();
 
 // --- MIDDLEWARES ---
-app.use(cors({
-    origin: '*',
-    credentials: true,
-}));
-
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
-app.use(fileUpload({
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB máx
-    abortOnLimit: true,
-}));
 
 // --- CONEXIÓN Y CRON ---
 connectDB();

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const fileUpload = require('express-fileupload');
 const { verifyToken } = require('../../infrastructure/middlewares/auth.middleware');
 const { verifyRole } = require('../../infrastructure/middlewares/roles.middleware');
 const Gestion = require('../../domain/gestiones/gestiones.model.js');
@@ -18,8 +19,10 @@ const parseFecha = (val) => {
     return f;
 };
 
+const fileUploadMiddleware = fileUpload({ limits: { fileSize: 50 * 1024 * 1024 } });
+
 // POST - Importar historial de gestiones (upsert por ruc + asesor + fecha)
-router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) => {
+router.post('/importar', verifyToken, verifyRole('sistemas'), fileUploadMiddleware, async (req, res) => {
     try {
         if (!req.files?.archivo) return res.status(400).json({ message: 'No se recibió archivo' });
 
@@ -47,7 +50,6 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
                     errores.push({ fila: i+2, error: `Tipo inválido: ${tipo}` }); continue;
                 }
 
-                // Buscar asesor por DNI con cache
                 if (!asesoresCache[dniAsesor]) {
                     const asesor = await User.findOne({ dni_user: dniAsesor });
                     if (!asesor) { errores.push({ fila: i+2, error: `Asesor no encontrado: ${dniAsesor}` }); continue; }
@@ -78,11 +80,9 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
                     };
                 }
 
-                // Calcular rango de fecha ±1 día para buscar coincidencia
                 const fechaInicio = new Date(fecha); fechaInicio.setUTCHours(0,0,0,0);
                 const fechaFin    = new Date(fecha); fechaFin.setUTCHours(23,59,59,999);
 
-                // Buscar gestión existente por ruc + asesor + fecha
                 const existente = await Gestion.findOne({
                     ruc,
                     'asesor.id_asesor': asesor._id,
@@ -113,8 +113,7 @@ router.post('/importar', verifyToken, verifyRole('sistemas'), async (req, res) =
                     const nueva = new Gestion({
                         ruc,
                         razon_social: fila['razon_social'] ? String(fila['razon_social']).trim() : '',
-                        segmento,
-                        total_lineas: totalLineas,
+                        segmento, total_lineas: totalLineas,
                         contacto: {
                             nombre:   fila['nombre_contacto']   ? String(fila['nombre_contacto']).trim()   : null,
                             dni:      fila['dni_contacto']      ? String(fila['dni_contacto']).trim()      : null,

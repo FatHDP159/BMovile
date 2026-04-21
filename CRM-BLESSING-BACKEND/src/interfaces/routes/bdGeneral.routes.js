@@ -78,7 +78,7 @@ router.post("/desasignar-masivo", verifyToken, verifyRole("sistemas"), async (re
 
         const filtro = {
             'asignacion.id_asesor': id_asesor,
-            estado_base: { $in: ['asignada', 'trabajada'] },
+            estado_base: { $in: ['asignada'] },
         };
         if (segmento) filtro.segmento = segmento;
         if (operador) filtro[`lineas.${operador}`] = { $gt: 0 };

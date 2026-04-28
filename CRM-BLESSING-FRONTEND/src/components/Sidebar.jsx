@@ -9,6 +9,7 @@ import {
     faFileCircleCheck, faRightFromBracket, faThumbtack,
     faBell, faCheckDouble, faTrash, faGear, faCircleInfo,
     faSun, faMoon, faXmark, faEnvelope, faPhone, faHistory,
+    faServer
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Sidebar.css';
@@ -202,6 +203,7 @@ const Sidebar = () => {
             { path: '/dashboard', label: 'Dashboard', icon: faHome },
             { path: '/usuarios', label: 'Usuarios', icon: faUsers },
             { path: '/bd-general', label: 'Base General', icon: faDatabase },
+            { path: '/admin-bd', label: 'Admin BD', icon: faServer },
             { path: '/gestiones-supervisor', label: 'Gestiones', icon: faClipboardList },
             { path: '/historial', label: 'Historial', icon: faHistory },
             { path: '/solicitudes', label: 'Solicitudes', icon: faFileCircleCheck },

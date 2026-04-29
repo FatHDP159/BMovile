@@ -284,14 +284,38 @@ const AdminBD = () => {
                             </div>
                         )}
 
-                        {/* Botón importar */}
-                        <button
-                            className="btn-import"
-                            style={{ background: tabImportActivo.color }}
-                            onClick={() => fileRefs.current[tabImport]?.click()}
-                        >
-                            <FontAwesomeIcon icon={faUpload} /> Seleccionar Excel — {tabImportActivo.label}
-                        </button>
+                        {/* Botones */}
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                            <button
+                                className="btn-import"
+                                style={{ background: tabImportActivo.color }}
+                                onClick={() => fileRefs.current[tabImport]?.click()}
+                            >
+                                <FontAwesomeIcon icon={faUpload} /> Seleccionar Excel — {tabImportActivo.label}
+                            </button>
+                            <a
+                                href="/plantillas_adminBD.xlsx"
+                                download="plantillas_adminBD.xlsx"
+                                className="btn-export"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                                onClick={async (e) => {
+                                    e.preventDefault();
+                                    try {
+                                        const res = await fetch('/plantillas_adminBD.xlsx');
+                                        if (!res.ok) throw new Error();
+                                        const blob = await res.blob();
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url; a.download = 'plantillas_adminBD.xlsx'; a.click();
+                                        URL.revokeObjectURL(url);
+                                    } catch {
+                                        alert('Descarga el archivo "plantillas_adminBD.xlsx" que te pasamos y colócalo en la carpeta public del frontend.');
+                                    }
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faDownload} /> Descargar Plantilla
+                            </a>
+                        </div>
                         <input
                             type="file"
                             accept=".xlsx,.xls"

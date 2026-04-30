@@ -79,13 +79,28 @@ const AdminBD = () => {
         setImportResult(null);
         const formData = new FormData();
         formData.append('archivo', file);
+
+        // Endpoints por tipo
+        const endpoints = {
+            'sunat': '/admin-bd/importar/sunat',
+            'osiptel': '/admin-bd/importar/osiptel',
+            'salesforce': '/admin-bd/importar/salesforce',
+            'contactos-autorizados': '/contactos/autorizados/importar',
+            'contactos-rrll': '/contactos/rrll/importar',
+        };
+
         try {
-            const res = await api.post(`/admin-bd/importar/${tipo}`, formData, {
+            const res = await api.post(endpoints[tipo], formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setImportResult({ tipo, ...res.data });
-        } catch (err) { console.error(err); setImportResult({ tipo, error: 'Error al importar' }); }
-        finally { setImportando(false); if (fileRefs.current[tipo]) fileRefs.current[tipo].value = ''; }
+        } catch (err) {
+            console.error(err);
+            setImportResult({ tipo, error: 'Error al importar' });
+        } finally {
+            setImportando(false);
+            if (fileRefs.current[tipo]) fileRefs.current[tipo].value = '';
+        }
     };
 
     const handleExportar = async () => {

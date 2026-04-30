@@ -13,8 +13,14 @@ const TABS_IMPORTAR = [
     { key: 'sunat', label: 'SUNAT', icon: faBuilding, color: '#1565c0', columnas: ['ruc', 'razon_social', 'estado', 'condicion', 'direccion', 'actividad'] },
     { key: 'osiptel', label: 'OSIPTEL', icon: faSatelliteDish, color: '#2e7d32', columnas: ['ruc', 'claro', 'movistar', 'entel', 'otros'] },
     { key: 'salesforce', label: 'SALESFORCE', icon: faHandshake, color: '#6a1b9a', columnas: ['ruc', 'segmento', 'facturacion', 'grupo_economico', 'estatus', 'consultor', 'fecha_asignacion', 'tipo_cliente', 'sustento', 'fecha_sustento', 'detalle_servicios', 'oportunidad_ganada', 'fecha_oportunidad'] },
-    { key: 'contactos-autorizados', label: 'Contactos Auth.', icon: faAddressBook, color: '#e65100', columnas: ['ruc', 'nombre', 'dni', 'tel', 'correo'] },
-    { key: 'contactos-rrll', label: 'Contactos RRLL', icon: faUsers, color: '#00695c', columnas: ['ruc', 'tipo_doc', 'nr_doc', 'nombre', 'cargo', 'tel', 'correo'] },
+    {
+        key: 'contactos-autorizados', label: 'Contactos Auth.', icon: faAddressBook, color: '#e65100',
+        columnas: ['ruc', 'nombre', 'cargo', 'dni', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'correo_1', 'correo_2', 'correo_3']
+    },
+    {
+        key: 'contactos-rrll', label: 'Contactos RRLL', icon: faUsers, color: '#00695c',
+        columnas: ['ruc', 'nombre', 'cargo', 'tipo_doc', 'nr_doc', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'correo_1', 'correo_2', 'correo_3']
+    },
 ];
 
 const fmt = (fecha) => {
@@ -308,28 +314,32 @@ const AdminBD = () => {
                             >
                                 <FontAwesomeIcon icon={faUpload} /> Seleccionar Excel — {tabImportActivo.label}
                             </button>
-                            <a
-                                href="/plantillas_adminBD.xlsx"
-                                download="plantillas_adminBD.xlsx"
+                            <button
                                 className="btn-export"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                                onClick={async (e) => {
-                                    e.preventDefault();
+                                onClick={async () => {
+                                    const archivos = {
+                                        'sunat': 'plantilla_sunat.xlsx',
+                                        'osiptel': 'plantilla_osiptel.xlsx',
+                                        'salesforce': 'plantilla_salesforce.xlsx',
+                                        'contactos-autorizados': 'plantilla_contactos_autorizados.xlsx',
+                                        'contactos-rrll': 'plantilla_contactos_rrll.xlsx',
+                                    };
+                                    const archivo = archivos[tabImport];
                                     try {
-                                        const res = await fetch('/plantillas_adminBD.xlsx');
+                                        const res = await fetch(`/${archivo}`);
                                         if (!res.ok) throw new Error();
                                         const blob = await res.blob();
                                         const url = URL.createObjectURL(blob);
                                         const a = document.createElement('a');
-                                        a.href = url; a.download = 'plantillas_adminBD.xlsx'; a.click();
+                                        a.href = url; a.download = archivo; a.click();
                                         URL.revokeObjectURL(url);
                                     } catch {
-                                        alert('Descarga el archivo "plantillas_adminBD.xlsx" que te pasamos y colócalo en la carpeta public del frontend.');
+                                        alert(`Coloca el archivo "${archivo}" en la carpeta public del frontend.`);
                                     }
                                 }}
                             >
                                 <FontAwesomeIcon icon={faDownload} /> Descargar Plantilla
-                            </a>
+                            </button>
                         </div>
                         <input
                             type="file"

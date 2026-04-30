@@ -12,6 +12,7 @@ const sistemasRoutes = require('./interfaces/routes/sistemas.routes');
 const importarRoutes = require('./interfaces/routes/importar.routes');
 const historialRoutes = require('./interfaces/routes/historial.routes');
 const notificacionesRoutes = require('./interfaces/routes/notificaciones.routes');
+const adminBDRoutes = require('./interfaces/routes/adminBD.routes');
 const iniciarCron = require('./infrastructure/database/cron');
 
 require('dotenv').config();
@@ -38,7 +39,7 @@ app.use('/api/sistemas', sistemasRoutes);
 app.use('/api/importar', importarRoutes);
 app.use('/api/historial', historialRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
-
+app.use('/api/admin-bd', adminBDRoutes);
 app.get('/', (req, res) => {
     res.json({ message: '✅ CRM Blessing API corriendo' });
 });

@@ -151,5 +151,47 @@ router.get('/rrll/:ruc', verifyToken, async (req, res) => {
         res.json(resultado);
     } catch (e) { res.status(500).json({ message: 'Error', error: e.message }); }
 });
+// POST - Agregar contacto autorizado individual
+router.post('/autorizados/agregar', verifyToken, async (req, res) => {
+    try {
+        const { ruc, nombre, cargo, dni, telefonos, correos } = req.body;
+        if (!ruc || !nombre) return res.status(400).json({ message: 'ruc y nombre son obligatorios' });
+
+        // Upsert contacto por ruc + nombre
+        const contacto = await ContactoAutorizado.findOneAndUpdate(
+            { ruc, nombre },
+            { $set: { cargo: cargo || null, dni: dni || null }, $setOnInsert: { ruc, nombre } },
+            { upsert: true, new: true }
+        );
+
+        // Guardar teléfonos
+        if (telefonos?.length) {
+            for (const val of telefonos) {
+                if (!val.trim()) continue;
+                await ContactoAutorizadoDato.updateOne(
+                    { id_contacto: contacto._id, tipo: 'telefono', valor: val.trim() },
+                    { $setOnInsert: { id_contacto: contacto._id, ruc, tipo: 'telefono', valor: val.trim() } },
+                    { upsert: true }
+                );
+            }
+        }
+
+        // Guardar correos
+        if (correos?.length) {
+            for (const val of correos) {
+                if (!val.trim()) continue;
+                await ContactoAutorizadoDato.updateOne(
+                    { id_contacto: contacto._id, tipo: 'correo', valor: val.trim() },
+                    { $setOnInsert: { id_contacto: contacto._id, ruc, tipo: 'correo', valor: val.trim() } },
+                    { upsert: true }
+                );
+            }
+        }
+
+        res.json({ message: 'Contacto guardado correctamente', contacto });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al guardar contacto', error: error.message });
+    }
+});
 
 module.exports = router;

@@ -182,5 +182,102 @@ router.get('/exportar', verifyToken, verifyRole('sistemas'), async (req, res) =>
         res.json({ empresas, total: empresas.length });
     } catch (e) { res.status(500).json({ message: 'Error', error: e.message }); }
 });
+// POST - Asignación masiva empresas_v2
+router.post('/asignar-masivo', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const {
+            id_asesor, cantidad, segmento,
+            operadores,      // array: ['entel','movistar']
+            lineas_min_op,   // número mínimo de líneas por cada operador seleccionado
+            aplicar_reglas_sf // boolean — solo para Mayores
+        } = req.body;
+
+        if (!id_asesor || !cantidad) {
+            return res.status(400).json({ message: 'id_asesor y cantidad son requeridos' });
+        }
+
+        const hoy = new Date();
+
+        const filtro = {
+            estado_base: 'disponible',
+            'asignacion.id_asesor': null,
+        };
+
+        // Filtro segmento
+        if (segmento) filtro['salesforce.segmento'] = { $regex: segmento, $options: 'i' };
+
+        // Filtro operadores — cada operador seleccionado debe tener al menos lineas_min_op líneas
+        if (operadores?.length > 0) {
+            const minLineas = Number(lineas_min_op) || 1;
+            filtro.$and = operadores.map(op => ({
+                [`osiptel.${op}`]: { $gte: minLineas }
+            }));
+        }
+
+        // Reglas Salesforce para Mayores
+        if (aplicar_reglas_sf) {
+            const hace30dias = new Date(hoy); hace30dias.setDate(hoy.getDate() - 30);
+            const hace3meses = new Date(hoy); hace3meses.setMonth(hoy.getMonth() - 3);
+
+            // Excluir caso 4: sustento=true Y oportunidad_ganada=true → BLINDADA
+            filtro.$nor = [
+                { 'salesforce.sustento': true, 'salesforce.oportunidad_ganada': true }
+            ];
+
+            // Casos 2 y 3: sustento O oportunidad → esperar 3 meses desde fecha_asignacion
+            // Solo asignables si han pasado 3 meses o si no tienen ni sustento ni oportunidad
+            filtro.$or = [
+                // Caso 1: sin sustento y sin oportunidad, más de 30 días desde asignación SF
+                {
+                    'salesforce.sustento': false,
+                    'salesforce.oportunidad_ganada': false,
+                    $or: [
+                        { 'salesforce.fecha_asignacion': { $lte: hace30dias } },
+                        { 'salesforce.fecha_asignacion': null },
+                    ]
+                },
+                // Caso 2: con sustento, sin oportunidad, más de 3 meses
+                {
+                    'salesforce.sustento': true,
+                    'salesforce.oportunidad_ganada': false,
+                    'salesforce.fecha_asignacion': { $lte: hace3meses }
+                },
+                // Caso 3: sin sustento, con oportunidad, más de 3 meses
+                {
+                    'salesforce.sustento': false,
+                    'salesforce.oportunidad_ganada': true,
+                    'salesforce.fecha_asignacion': { $lte: hace3meses }
+                },
+            ];
+        }
+
+        // Obtener empresas elegibles
+        const empresas = await EmpresaV2.find(filtro).limit(Number(cantidad));
+
+        if (empresas.length === 0) {
+            return res.json({ message: 'No se encontraron empresas disponibles con esos filtros', total: 0 });
+        }
+
+        // Asignar
+        const ids = empresas.map(e => e._id);
+        await EmpresaV2.updateMany(
+            { _id: { $in: ids } },
+            {
+                $set: {
+                    'asignacion.id_asesor': id_asesor,
+                    'asignacion.fecha_asignada': hoy,
+                    'asignacion.fecha_desasignacion': null,
+                    estado_base: 'asignada',
+                }
+            }
+        );
+
+        res.json({ message: `${empresas.length} empresas asignadas correctamente`, total: empresas.length });
+    } catch (error) {
+        res.status(500).json({ message: 'Error en asignación masiva', error: error.message });
+    }
+});
+
+
 
 module.exports = router;

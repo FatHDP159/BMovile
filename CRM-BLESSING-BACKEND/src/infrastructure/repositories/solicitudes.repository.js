@@ -1,10 +1,10 @@
 const Solicitud = require('../../domain/solicitudes/solicitudes.model.js');
 const BdGeneral = require('../../domain/db_general/db_general.models.js');
+const EmpresaV2 = require('../../domain/empresaV2/empresaV2.model.js');
 const Gestion = require('../../domain/gestiones/gestiones.model.js');
 
 const solicitudesRepository = {
 
-    // Buscar empresa por RUC — lógica completa
     buscarPorRuc: async (ruc, id_asesor) => {
         const resultado = { ruc, estado: null, razon_social: null, consultor: null, solicitud: null };
 
@@ -20,10 +20,9 @@ const solicitudesRepository = {
             return resultado;
         }
 
-        // 2. Buscar en base de gestiones (última gestión)
+        // 2. Buscar en gestiones (última gestión)
         const ultimaGestion = await Gestion.findOne({ ruc }).sort({ createdAt: -1 })
             .populate('asesor.id_asesor', 'nombre_user');
-
         if (ultimaGestion) {
             resultado.razon_social = ultimaGestion.razon_social;
             resultado.consultor = ultimaGestion.asesor?.id_asesor?.nombre_user || 'Asesor';
@@ -32,10 +31,17 @@ const solicitudesRepository = {
             return resultado;
         }
 
-        // 3. Buscar en base general
-        const empresa = await BdGeneral.findOne({ ruc });
-        if (empresa) {
-            resultado.razon_social = empresa.razon_social;
+        // 3. Buscar en empresas_v2 primero, luego en bdgenerals
+        const empresaV2 = await EmpresaV2.findOne({ ruc });
+        if (empresaV2) {
+            resultado.razon_social = empresaV2.sunat?.razon_social || ruc;
+            resultado.estado = 'no_gestionada';
+            return resultado;
+        }
+
+        const empresaLegacy = await BdGeneral.findOne({ ruc });
+        if (empresaLegacy) {
+            resultado.razon_social = empresaLegacy.razon_social;
             resultado.estado = 'no_gestionada';
             return resultado;
         }
@@ -45,9 +51,7 @@ const solicitudesRepository = {
         return resultado;
     },
 
-    // Crear solicitud
     crear: async (id_asesor, nombre_asesor, ruc, razon_social) => {
-        // Verificar que no haya solicitud pendiente ya
         const existe = await Solicitud.findOne({ 'empresa.ruc': ruc, estado: 'pendiente' });
         if (existe) throw new Error('Ya existe una solicitud pendiente para esta empresa');
         return await Solicitud.create({
@@ -56,37 +60,52 @@ const solicitudesRepository = {
         });
     },
 
-    // Listar todas las solicitudes (supervisor)
     findAll: async () => {
         return await Solicitud.find().sort({ createdAt: -1 });
     },
 
-    // Listar pendientes (supervisor)
     findPendientes: async () => {
         return await Solicitud.find({ estado: 'pendiente' }).sort({ createdAt: 1 });
     },
 
-    // Aprobar solicitud
     aprobar: async (id, supervisor_nombre, id_asesor) => {
         const solicitud = await Solicitud.findByIdAndUpdate(
             id,
             { estado: 'aprobada', revisado_por: supervisor_nombre, fecha_revision: new Date() },
             { returnDocument: 'after' }
         );
-        // Asignar empresa al asesor en bd_general
-        await BdGeneral.findOneAndUpdate(
-            { ruc: solicitud.empresa.ruc },
-            {
-                'asignacion.id_asesor': id_asesor || solicitud.asesor.id,
-                'asignacion.fecha_asignada': new Date(),
-                'asignacion.fecha_desasignacion': null,
-                estado_base: 'asignada',
-            }
-        );
+
+        const asesorId = id_asesor || solicitud.asesor.id;
+        const ruc = solicitud.empresa.ruc;
+
+        // Asignar en empresas_v2 primero, fallback a bdgenerals
+        const empresaV2 = await EmpresaV2.findOne({ ruc });
+        if (empresaV2) {
+            await EmpresaV2.findOneAndUpdate(
+                { ruc },
+                {
+                    'asignacion.id_asesor': asesorId,
+                    'asignacion.fecha_asignada': new Date(),
+                    'asignacion.fecha_desasignacion': null,
+                    estado_base: 'asignada',
+                },
+                { new: true }
+            );
+        } else {
+            await BdGeneral.findOneAndUpdate(
+                { ruc },
+                {
+                    'asignacion.id_asesor': asesorId,
+                    'asignacion.fecha_asignada': new Date(),
+                    'asignacion.fecha_desasignacion': null,
+                    estado_base: 'asignada',
+                }
+            );
+        }
+
         return solicitud;
     },
 
-    // Rechazar solicitud
     rechazar: async (id, supervisor_nombre) => {
         return await Solicitud.findByIdAndUpdate(
             id,

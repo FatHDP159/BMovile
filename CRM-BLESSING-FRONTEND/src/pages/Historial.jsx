@@ -189,7 +189,7 @@ const Historial = () => {
                                                 : '—'}
                                         </td>
                                         <td style={{ maxWidth: 200, fontSize: 11, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {g.oportunidad?.comentario || '—'}
+                                            {g.comentario || g.oportunidad?.comentario || '—'}
                                         </td>
                                     </tr>
                                 ))}

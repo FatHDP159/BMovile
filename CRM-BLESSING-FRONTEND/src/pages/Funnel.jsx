@@ -8,14 +8,21 @@ import './Usuarios.css';
 import './Funnel.css';
 
 const ESTADOS = [
-    { key: 'Identificada', label: 'Identificada', color: 'estado-identificada' },
+    { key: 'Identificada',        label: 'Identificada',        color: 'estado-identificada' },
     { key: 'Propuesta Entregada', label: 'Propuesta Entregada', color: 'estado-propuesta' },
-    { key: 'Negociación', label: 'Negociación', color: 'estado-negociacion' },
-    { key: 'Negociada Aprobada', label: 'Negociada Aprobada', color: 'estado-aprobada' },
+    { key: 'Negociación',         label: 'Negociación',         color: 'estado-negociacion' },
+    { key: 'Negociada Aprobada',  label: 'Negociada Aprobada',  color: 'estado-aprobada' },
     { key: 'Negociada Rechazada', label: 'Negociada Rechazada', color: 'estado-rechazada' },
 ];
 
-const ORDEN_ESTADOS = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
+// Tabs visibles en el modal — 4 pasos
+const TABS = [
+    { key: 'Identificada',        label: 'Identificada',      num: 1 },
+    { key: 'Propuesta Entregada', label: 'Prop. Entregada',   num: 2 },
+    { key: 'Negociación',         label: 'Negociación',       num: 3 },
+    { key: 'Cerrada',             label: 'Cerrada',           num: 4 },
+];
+
 const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
 const SEGMENTOS = ['Micro', 'Pyme', 'Mayores', 'Empresas', 'Gobierno'];
 
@@ -23,6 +30,12 @@ const fmt = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+};
+
+// Convierte estado real → tab
+const estadoATab = (estado) => {
+    if (estado === 'Negociada Aprobada' || estado === 'Negociada Rechazada') return 'Cerrada';
+    return estado || 'Identificada';
 };
 
 const DiasCell = ({ fechaTipificacion }) => {
@@ -40,15 +53,15 @@ const EstadoBadge = ({ estado }) => {
     return <span className={`estado-badge ${e?.color || ''}`}>{e?.label || estado}</span>;
 };
 
-// ── Modal Gestión ────────────────────────────────────────────────────────────
+// ── Modal Gestión ─────────────────────────────────────────────────────────────
 const ModalGestion = ({ gestion, onClose, onGuardado }) => {
     const estadoActual = gestion.oportunidad?.estado || 'Identificada';
-    const idxActual = ORDEN_ESTADOS.indexOf(estadoActual);
-    const tabInicial = ['Negociada Aprobada', 'Negociada Rechazada'].includes(estadoActual) ? 'Negociación' : estadoActual;
+    const tabInicial = estadoATab(estadoActual);
+
     const [tabActivo, setTabActivo] = useState(tabInicial);
-    const [negociadaRes, setNegociadaRes] = useState(
+    const [resultadoCierre, setResultadoCierre] = useState(
         estadoActual === 'Negociada Aprobada' ? 'Aprobada' :
-            estadoActual === 'Negociada Rechazada' ? 'Rechazada' : ''
+        estadoActual === 'Negociada Rechazada' ? 'Rechazada' : ''
     );
     const [form, setForm] = useState({
         titulo: gestion.oportunidad?.titulo || '',
@@ -63,29 +76,47 @@ const ModalGestion = ({ gestion, onClose, onGuardado }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const tabsVisibles = ['Identificada', 'Propuesta Entregada', 'Negociación'];
+    // Índice del tab actual para bloquear retrocesos
+    const tabKeys = TABS.map(t => t.key);
+    const idxActual = tabKeys.indexOf(tabInicial);
 
     const handleGuardar = async () => {
         if (!form.producto || !form.cantidad || !form.cargo_fijo) {
             setError('Producto, Cantidad y Cargo Fijo son obligatorios'); return;
         }
-        if (tabActivo === 'Negociación' && !negociadaRes) {
+        if (tabActivo === 'Cerrada' && !resultadoCierre) {
             setError('Debes seleccionar Aprobada o Rechazada'); return;
         }
-        const estadoFinal = tabActivo === 'Negociación' ? `Negociada ${negociadaRes}` : tabActivo;
+
+        let estadoFinal;
+        if (tabActivo === 'Cerrada') {
+            estadoFinal = `Negociada ${resultadoCierre}`;
+        } else {
+            estadoFinal = tabActivo;
+        }
+
         setLoading(true);
         try {
             await api.put(`/gestiones/${gestion._id}`, {
-                contacto: { nombre: form.contacto_nombre, telefono: form.contacto_telefono, dni: gestion.contacto?.dni || '' },
+                contacto: {
+                    nombre: form.contacto_nombre,
+                    telefono: form.contacto_telefono,
+                    dni: gestion.contacto?.dni || '',
+                },
                 oportunidad: {
-                    titulo: form.titulo, producto: form.producto,
-                    cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
+                    titulo: form.titulo,
+                    producto: form.producto,
+                    cantidad: Number(form.cantidad),
+                    cargo_fijo: Number(form.cargo_fijo),
                     operadores: gestion.oportunidad?.operadores || {},
-                    estado: estadoFinal, sustento: form.sustento, comentario: form.comentario,
+                    estado: estadoFinal,
+                    sustento: form.sustento,
+                    comentario: form.comentario,
                 },
             });
-            onGuardado(); onClose();
-        } catch (err) {
+            onGuardado();
+            onClose();
+        } catch {
             setError('Error al guardar');
         } finally {
             setLoading(false);
@@ -105,31 +136,44 @@ const ModalGestion = ({ gestion, onClose, onGuardado }) => {
 
                 {error && <p style={{ color: 'red', margin: '8px 0', fontSize: 12 }}>{error}</p>}
 
+                {/* 4 tabs */}
                 <div className="funnel-tabs">
-                    {tabsVisibles.map((tab, i) => {
-                        const idxTab = ORDEN_ESTADOS.indexOf(tab);
-                        const bloqueado = idxTab < idxActual && !['Negociada Aprobada', 'Negociada Rechazada'].includes(estadoActual);
-                        const activo = tabActivo === tab;
+                    {TABS.map((tab, i) => {
+                        const bloqueado = i < idxActual;
+                        const activo = tabActivo === tab.key;
                         return (
-                            <button key={tab}
-                                className={`funnel-tab ${activo ? 'active' : ''} ${bloqueado ? 'blocked' : ''}`}
-                                onClick={() => !bloqueado && setTabActivo(tab)}
+                            <button
+                                key={tab.key}
+                                className={`funnel-tab ${activo ? 'active' : ''} ${bloqueado ? 'blocked' : ''} ${tab.key === 'Cerrada' ? 'tab-cerrada' : ''}`}
+                                onClick={() => !bloqueado && setTabActivo(tab.key)}
                                 disabled={bloqueado}
                             >
-                                <span className="tab-num">{i + 1}</span> {tab}
+                                <span className="tab-num">{tab.num}</span> {tab.label}
                             </button>
                         );
                     })}
                 </div>
 
-                {tabActivo === 'Negociación' && (
+                {/* Selector Aprobada / Rechazada solo en tab Cerrada */}
+                {tabActivo === 'Cerrada' && (
                     <div className="negociada-selector">
-                        <span style={{ fontSize: 12, color: '#666' }}>Resultado:</span>
-                        <button className={`btn-negociada aprobada ${negociadaRes === 'Aprobada' ? 'selected' : ''}`} onClick={() => setNegociadaRes('Aprobada')}>✓ Aprobada</button>
-                        <button className={`btn-negociada rechazada ${negociadaRes === 'Rechazada' ? 'selected' : ''}`} onClick={() => setNegociadaRes('Rechazada')}>✕ Rechazada</button>
+                        <span style={{ fontSize: 13, color: '#555', fontWeight: 600 }}>Resultado de cierre:</span>
+                        <button
+                            className={`btn-negociada aprobada ${resultadoCierre === 'Aprobada' ? 'selected' : ''}`}
+                            onClick={() => setResultadoCierre('Aprobada')}
+                        >
+                            ✓ Aprobada
+                        </button>
+                        <button
+                            className={`btn-negociada rechazada ${resultadoCierre === 'Rechazada' ? 'selected' : ''}`}
+                            onClick={() => setResultadoCierre('Rechazada')}
+                        >
+                            ✕ Rechazada
+                        </button>
                     </div>
                 )}
 
+                {/* Formulario */}
                 <div className="funnel-form">
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div className="form-field">
@@ -187,7 +231,7 @@ const ModalGestion = ({ gestion, onClose, onGuardado }) => {
     );
 };
 
-// ── Página principal ─────────────────────────────────────────────────────────
+// ── Página principal ──────────────────────────────────────────────────────────
 const Funnel = ({ esSupervisor = false }) => {
     const [gestiones, setGestiones] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -282,55 +326,55 @@ const Funnel = ({ esSupervisor = false }) => {
             <div className="table-container">
                 {loading ? <p style={{ padding: 20 }}>Cargando...</p>
                     : gestiones.length === 0 ? <p style={{ padding: 20, color: '#999' }}>No se encontraron oportunidades.</p>
-                        : (
-                            <>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>RUC</th>
-                                            <th>Razón Social</th>
-                                            {esSupervisor && <th>Asesor</th>}
-                                            <th>Segmento</th>
-                                            <th>Líneas</th>
-                                            <th>Días</th>
-                                            <th>Estado</th>
-                                            <th>Sustento</th>
-                                            <th>Acciones</th>
+                    : (
+                        <>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>RUC</th>
+                                        <th>Razón Social</th>
+                                        {esSupervisor && <th>Asesor</th>}
+                                        <th>Segmento</th>
+                                        <th>Líneas</th>
+                                        <th>Días</th>
+                                        <th>Estado</th>
+                                        <th>Sustento</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {gestiones.map(g => (
+                                        <tr key={g._id}>
+                                            <td>{fmt(g.fechas?.fecha_tipificacion)}</td>
+                                            <td style={{ fontWeight: 600, color: '#3949ab' }}>{g.ruc}</td>
+                                            <td>{g.razon_social}</td>
+                                            {esSupervisor && <td>{g.asesor?.id_asesor?.nombre_user || '—'}</td>}
+                                            <td>{g.segmento || '—'}</td>
+                                            <td>{g.total_lineas || '—'}</td>
+                                            <td><DiasCell fechaTipificacion={g.fechas?.fecha_tipificacion} /></td>
+                                            <td><EstadoBadge estado={g.oportunidad?.estado} /></td>
+                                            <td><span className={`sustento-badge ${g.oportunidad?.sustento ? 'si' : 'no'}`}>{g.oportunidad?.sustento ? 'Sí' : 'No'}</span></td>
+                                            <td>
+                                                <button className="btn-estado btn-asignar" onClick={() => setModalGestion(g)}>
+                                                    <FontAwesomeIcon icon={faPen} /> Gestionar
+                                                </button>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {gestiones.map(g => (
-                                            <tr key={g._id}>
-                                                <td>{fmt(g.fechas?.fecha_tipificacion)}</td>
-                                                <td style={{ fontWeight: 600, color: '#3949ab' }}>{g.ruc}</td>
-                                                <td>{g.razon_social}</td>
-                                                {esSupervisor && <td>{g.asesor?.id_asesor?.nombre_user || '—'}</td>}
-                                                <td>{g.segmento || '—'}</td>
-                                                <td>{g.total_lineas || '—'}</td>
-                                                <td><DiasCell fechaTipificacion={g.fechas?.fecha_tipificacion} /></td>
-                                                <td><EstadoBadge estado={g.oportunidad?.estado} /></td>
-                                                <td><span className={`sustento-badge ${g.oportunidad?.sustento ? 'si' : 'no'}`}>{g.oportunidad?.sustento ? 'Sí' : 'No'}</span></td>
-                                                <td>
-                                                    <button className="btn-estado btn-asignar" onClick={() => setModalGestion(g)}>
-                                                        <FontAwesomeIcon icon={faPen} /> Gestionar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                {totalPages > 1 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
-                                        <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} oportunidades</span>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
-                                            <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
-                                        </div>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
+                                    <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} oportunidades</span>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
+                                        <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
                                     </div>
-                                )}
-                            </>
-                        )}
+                                </div>
+                            )}
+                        </>
+                    )}
             </div>
 
             {modalGestion && <ModalGestion gestion={modalGestion} onClose={() => setModalGestion(null)} onGuardado={() => cargar(page)} />}

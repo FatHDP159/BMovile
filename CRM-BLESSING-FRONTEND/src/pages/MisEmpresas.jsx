@@ -304,78 +304,96 @@ const ModalContacto = ({ empresa, onClose, onGuardado }) => {
 
 // ── Modal Tipificar ───────────────────────────────────────────────────────────
 const TIPIFICACIONES = [
-    { key: 'interesado', label: 'Cliente Interesado' },
-    { key: 'cliente_claro', label: 'Cliente Claro' },
-    { key: 'sin_contacto', label: 'Sin Contactos / Teléfonos errados' },
-    { key: 'con_deuda', label: 'Cliente con Deuda' },
-    { key: 'no_contesta', label: 'Cliente No Contesta' },
-    { key: 'cliente_no_interesado', label: 'Cliente No Interesado' },
-    { key: 'empresa_con_sustento_valido', label: 'Empresa Con Sustento Valido' }
+    { key: 'llamada',                     label: 'Llamada' },
+    { key: 'sin_contacto',                label: 'Sin Contacto' },
+    { key: 'con_deuda',                   label: 'Cliente con Deuda' },
+    { key: 'no_contesta',                 label: 'No Contesta' },
+    { key: 'cliente_claro',               label: 'Cliente Claro' },
+    { key: 'cliente_no_interesado',       label: 'Cliente No Interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Empresa Con Sustento Valido' },
 ];
 
 const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
 
 const ModalTipificar = ({ empresa, onClose, onGuardado }) => {
     const [tipo, setTipo] = useState('');
+    const [agregarOportunidad, setAgregarOportunidad] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [contactosRRLL, setContactosRRLL] = useState([]);
     const [form, setForm] = useState({
-        contacto_id: '', contacto_tipo: 'autorizado',
-        comentario: '', titulo: '', producto: '', cantidad: '',
-        cargo_fijo: '', entel: '', claro: '', movistar: '', otros: '', total_lineas: '',
+        contacto_id: '',
+        comentario: '',
+        contacto_nombre: '', contacto_telefono: '', contacto_dni: '',
+        titulo: '', producto: '', cantidad: '', cargo_fijo: '',
+        entel: '', claro: '', movistar: '', otros: '', total_lineas: '',
+        fecha_cierre_esperada: '',
     });
 
     const contactosAuth = empresa.contactos_autorizados || [];
 
-    // Cargar contactos RRLL
     useEffect(() => {
         api.get(`/empresas-v2/${empresa.ruc}/contactos-rrll`)
             .then(r => setContactosRRLL(r.data))
             .catch(() => setContactosRRLL([]));
     }, [empresa.ruc]);
 
-    // Todos los contactos combinados con etiqueta
     const todosContactos = [
-        ...contactosAuth.map(c => ({ ...c, _tipo: 'autorizado', _label: `[Auth] ${c.nombre}${c.dni ? ` - ${c.dni}` : ''}` })),
-        ...contactosRRLL.map(c => ({ ...c, _tipo: 'rrll', _label: `[RRLL] ${c.nombre}${c.nr_doc ? ` - ${c.nr_doc}` : ''}` })),
+        ...contactosAuth,
+        ...contactosRRLL,
     ];
+
+    const handleContactoChange = (id) => {
+        const c = todosContactos.find(c => c._id === id);
+        if (c) {
+            setForm(f => ({
+                ...f,
+                contacto_id: id,
+                contacto_nombre: c.nombre || '',
+                contacto_telefono: c.telefonos?.[0] || '',
+                contacto_dni: c.dni || c.nr_doc || '',
+            }));
+        } else {
+            setForm(f => ({ ...f, contacto_id: '', contacto_nombre: '', contacto_telefono: '', contacto_dni: '' }));
+        }
+    };
 
     const handleGuardar = async () => {
         if (!tipo) { setError('Selecciona una tipificación'); return; }
         setLoading(true);
         try {
-            const payload = {
-                tipo_tipificacion: tipo,
+            // 1. Registrar interacción en fichaGestion
+            const resficha = await api.post('/ficha-gestion/tipificar', {
                 ruc: empresa.ruc,
-                razon_social: empresa.sunat?.razon_social || '',
-            };
+                tipo,
+                comentario: form.comentario.trim() || null,
+                contacto: {
+                    nombre: form.contacto_nombre || null,
+                    telefono: form.contacto_telefono || null,
+                    dni: form.contacto_dni || null,
+                },
+            });
 
-            // Comentario para todos los tipos
-            if (form.comentario.trim()) {
-                payload.comentario = form.comentario.trim();
-            }
-
-            if (tipo === 'interesado') {
-                const contactoSel = todosContactos.find(c => c._id === form.contacto_id);
-                payload.contacto = contactoSel ? {
-                    nombre: contactoSel.nombre,
-                    dni: contactoSel.dni || contactoSel.nr_doc || null,
-                    telefono: contactoSel.telefonos?.[0] || '',
-                } : {};
-                payload.oportunidad = {
-                    titulo: form.titulo, producto: form.producto,
-                    cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
+            // 2. Si marcó agregar oportunidad, agregarla a la ficha
+            if (agregarOportunidad && form.producto && form.cantidad && form.cargo_fijo) {
+                const fichaId = resficha.data.ficha._id;
+                await api.post(`/ficha-gestion/${fichaId}/oportunidades`, {
+                    titulo: form.titulo,
+                    producto: form.producto,
+                    cantidad: Number(form.cantidad),
+                    cargo_fijo: Number(form.cargo_fijo),
+                    fecha_cierre_esperada: form.fecha_cierre_esperada || null,
                     comentario: form.comentario.trim() || null,
                     operadores: {
-                        entel: Number(form.entel), claro: Number(form.claro),
-                        movistar: Number(form.movistar), otros: Number(form.otros),
-                        total: Number(form.total_lineas),
+                        entel: Number(form.entel) || 0,
+                        claro: Number(form.claro) || 0,
+                        movistar: Number(form.movistar) || 0,
+                        otros: Number(form.otros) || 0,
+                        total: Number(form.total_lineas) || 0,
                     },
-                };
+                });
             }
 
-            await api.post('/gestiones', payload);
             onGuardado(); onClose();
         } catch { setError('Error al guardar tipificación'); }
         finally { setLoading(false); }
@@ -387,6 +405,7 @@ const ModalTipificar = ({ empresa, onClose, onGuardado }) => {
                 <h2>Tipificar — {empresa.sunat?.razon_social}</h2>
                 {error && <p style={{ color: 'red', marginBottom: 12 }}>{error}</p>}
 
+                {/* Tipos de interacción */}
                 <div className="tipificaciones-grid">
                     {TIPIFICACIONES.map(t => (
                         <button key={t.key} className={`btn-tipificacion ${tipo === t.key ? 'selected' : ''}`} onClick={() => setTipo(t.key)}>
@@ -395,44 +414,75 @@ const ModalTipificar = ({ empresa, onClose, onGuardado }) => {
                     ))}
                 </div>
 
-                {tipo === 'interesado' && (
+                {/* Contacto */}
+                {tipo && (
+                    <div className="form-field" style={{ marginTop: 16 }}>
+                        <label>Persona de Contacto (opcional)</label>
+                        <select className="form-input" value={form.contacto_id} onChange={e => handleContactoChange(e.target.value)}>
+                            <option value="">-- Seleccionar --</option>
+                            {contactosAuth.length > 0 && (
+                                <optgroup label="Contactos Autorizados">
+                                    {contactosAuth.map(c => <option key={c._id} value={c._id}>{c.nombre}{c.dni ? ` - ${c.dni}` : ''}</option>)}
+                                </optgroup>
+                            )}
+                            {contactosRRLL.length > 0 && (
+                                <optgroup label="Contactos RRLL">
+                                    {contactosRRLL.map(c => <option key={c._id} value={c._id}>{c.nombre}{c.nr_doc ? ` - ${c.nr_doc}` : ''}</option>)}
+                                </optgroup>
+                            )}
+                        </select>
+                    </div>
+                )}
+
+                {/* Comentario */}
+                {tipo && (
+                    <div className="form-field">
+                        <label>Comentario (opcional)</label>
+                        <textarea
+                            className="form-input"
+                            value={form.comentario}
+                            onChange={e => setForm({ ...form, comentario: e.target.value })}
+                            placeholder="Añade un comentario sobre esta gestión..."
+                            rows={3}
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+                )}
+
+                {/* Checkbox agregar oportunidad */}
+                {tipo && (
+                    <div style={{ marginTop: 8, marginBottom: 8 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                            <input type="checkbox" checked={agregarOportunidad} onChange={e => setAgregarOportunidad(e.target.checked)} />
+                            Agregar oportunidad a esta gestión
+                        </label>
+                    </div>
+                )}
+
+                {/* Formulario oportunidad */}
+                {agregarOportunidad && (
                     <div className="oportunidad-form">
-                        <div className="form-field"><label>Persona de Contacto</label>
-                            <select className="form-input" value={form.contacto_id} onChange={e => setForm({ ...form, contacto_id: e.target.value })}>
-                                <option value="">-- Seleccionar --</option>
-                                {todosContactos.length === 0 && <option disabled>Sin contactos registrados</option>}
-                                {contactosAuth.length > 0 && (
-                                    <optgroup label="Contactos Autorizados">
-                                        {contactosAuth.map(c => (
-                                            <option key={c._id} value={c._id}>{c.nombre}{c.dni ? ` - ${c.dni}` : ''}</option>
-                                        ))}
-                                    </optgroup>
-                                )}
-                                {contactosRRLL.length > 0 && (
-                                    <optgroup label="Contactos RRLL">
-                                        {contactosRRLL.map(c => (
-                                            <option key={c._id} value={c._id}>{c.nombre}{c.nr_doc ? ` - ${c.nr_doc}` : ''}</option>
-                                        ))}
-                                    </optgroup>
-                                )}
-                            </select>
-                        </div>
                         <div className="form-field"><label>Título de Oportunidad</label>
                             <input className="form-input" value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} placeholder="Ej: Renovación 20 líneas" />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <div className="form-field"><label>Producto</label>
+                            <div className="form-field"><label>Producto *</label>
                                 <select className="form-input" value={form.producto} onChange={e => setForm({ ...form, producto: e.target.value })}>
                                     <option value="">-- Seleccionar --</option>
                                     {PRODUCTOS.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             </div>
-                            <div className="form-field"><label>Cantidad</label>
+                            <div className="form-field"><label>Cantidad *</label>
                                 <input type="number" className="form-input" value={form.cantidad} onChange={e => setForm({ ...form, cantidad: e.target.value })} min="1" />
                             </div>
                         </div>
-                        <div className="form-field"><label>Cargo Fijo (S/.)</label>
-                            <input type="number" className="form-input" value={form.cargo_fijo} onChange={e => setForm({ ...form, cargo_fijo: e.target.value })} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div className="form-field"><label>Cargo Fijo (S/.) *</label>
+                                <input type="number" className="form-input" value={form.cargo_fijo} onChange={e => setForm({ ...form, cargo_fijo: e.target.value })} />
+                            </div>
+                            <div className="form-field"><label>Fecha cierre esperada</label>
+                                <input type="date" className="form-input" value={form.fecha_cierre_esperada} onChange={e => setForm({ ...form, fecha_cierre_esperada: e.target.value })} />
+                            </div>
                         </div>
                         <div className="form-field"><label>Operadores actuales</label>
                             <div className="operadores-grid">
@@ -444,21 +494,6 @@ const ModalTipificar = ({ empresa, onClose, onGuardado }) => {
                                 ))}
                             </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Comentario para todos los tipos */}
-                {tipo && (
-                    <div className="form-field" style={{ marginTop: 16 }}>
-                        <label>Comentario {tipo !== 'interesado' ? '(opcional)' : ''}</label>
-                        <textarea
-                            className="form-input"
-                            value={form.comentario}
-                            onChange={e => setForm({ ...form, comentario: e.target.value })}
-                            placeholder="Añade un comentario sobre esta gestión..."
-                            rows={3}
-                            style={{ resize: 'vertical' }}
-                        />
                     </div>
                 )}
 

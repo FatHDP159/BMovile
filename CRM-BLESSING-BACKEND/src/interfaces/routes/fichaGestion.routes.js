@@ -148,20 +148,24 @@ router.patch('/:id/archivar', verifyToken, verifyRole('supervisor', 'sistemas'),
     }
 });
 
-// ── POST /migrar — Migrar gestiones antiguas a fichas (temporal) ────────────
-router.post('/migrar', verifyToken, verifyRole('sistemas'), async (req, res) => {
+// PUT /:fichaId/interacciones/:interaccionId — Editar tipo y comentario
+router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('asesor', 'supervisor'), async (req, res) => {
     try {
-        const gestiones = await Gestion.find({})
-            .populate('asesor.id_asesor', 'nombre_user')
-            .sort({ createdAt: 1 });
-
-        const resultado = await fichaGestionRepository.migrarDesdeGestiones(gestiones);
-        res.json({
-            message: `Migración completada: ${resultado.creadas} fichas creadas desde ${resultado.total} gestiones`,
-            ...resultado,
-        });
+        const { tipo, comentario } = req.body;
+        const ficha = await FichaGestion.findOneAndUpdate(
+            { _id: req.params.fichaId, 'interacciones._id': req.params.interaccionId },
+            {
+                $set: {
+                    'interacciones.$.tipo': tipo,
+                    'interacciones.$.comentario': comentario || null,
+                }
+            },
+            { new: true }
+        );
+        if (!ficha) return res.status(404).json({ message: 'Ficha o interacción no encontrada' });
+        res.json({ message: 'Interacción actualizada', ficha });
     } catch (error) {
-        res.status(500).json({ message: 'Error en migración', error: error.message });
+        res.status(500).json({ message: 'Error al actualizar interacción', error: error.message });
     }
 });
 

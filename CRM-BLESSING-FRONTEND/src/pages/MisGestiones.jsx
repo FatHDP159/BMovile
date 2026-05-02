@@ -1,22 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faClipboardList, faChevronLeft, faChevronRight, faEye,
-    faPhone, faIdCard, faBriefcase, faComment, faPlus,
-    faHistory, faBullseye, faCheckCircle, faTimesCircle
+    faClipboardList, faChevronLeft, faChevronRight, faPen,
+    faPhone, faIdCard, faBriefcase, faComment,
+    faHistory, faBullseye
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Usuarios.css';
 import './MisGestiones.css';
 
 const TIPOS_INTERACCION = [
-    { key: 'llamada',                    label: 'Llamada',                    color: 'tipo-interesado' },
-    { key: 'sin_contacto',               label: 'Sin Contacto',               color: 'tipo-sin-contacto' },
-    { key: 'con_deuda',                  label: 'Con Deuda',                  color: 'tipo-deuda' },
-    { key: 'no_contesta',                label: 'No Contesta',                color: 'tipo-no-contesta' },
-    { key: 'cliente_claro',              label: 'Cliente Claro',              color: 'tipo-claro' },
-    { key: 'cliente_no_interesado',      label: 'No Interesado',              color: 'tipo-no-interesado' },
-    { key: 'empresa_con_sustento_valido',label: 'Sustento Válido',            color: 'tipo-sustento-valido' },
+    { key: 'interesado',                  label: 'Cliente Interesado',    color: 'tipo-interesado' },
+    { key: 'sin_contacto',                label: 'Sin Contacto',          color: 'tipo-sin-contacto' },
+    { key: 'con_deuda',                   label: 'Con Deuda',             color: 'tipo-deuda' },
+    { key: 'no_contesta',                 label: 'No Contesta',           color: 'tipo-no-contesta' },
+    { key: 'cliente_claro',               label: 'Cliente Claro',         color: 'tipo-claro' },
+    { key: 'cliente_no_interesado',       label: 'No Interesado',         color: 'tipo-no-interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido',       color: 'tipo-sustento-valido' },
 ];
 
 const ESTADOS_OPO = [
@@ -26,15 +26,6 @@ const ESTADOS_OPO = [
     { key: 'Negociada Aprobada',  color: '#e3f2fd', text: '#1565c0' },
     { key: 'Negociada Rechazada', color: '#fce8e6', text: '#c62828' },
 ];
-
-const TABS_FUNNEL = [
-    { key: 'Identificada',        label: 'Identificada',    num: 1 },
-    { key: 'Propuesta Entregada', label: 'Prop. Entregada', num: 2 },
-    { key: 'Negociación',         label: 'Negociación',     num: 3 },
-    { key: 'Cerrada',             label: 'Cerrada',         num: 4 },
-];
-
-const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
 
 const fmt = (fecha) => {
     if (!fecha) return '—';
@@ -53,106 +44,63 @@ const EstadoOpoBadge = ({ estado }) => {
     return <span style={{ background: e.color, color: e.text, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{estado}</span>;
 };
 
-const estadoATab = (estado) => {
-    if (estado === 'Negociada Aprobada' || estado === 'Negociada Rechazada') return 'Cerrada';
-    return estado || 'Identificada';
-};
-
-// ── Modal Ficha completa ──────────────────────────────────────────────────────
-const ModalFicha = ({ ficha, onClose, onGuardado }) => {
-    const [tab, setTab] = useState('interacciones');
-    const [showFormInteraccion, setShowFormInteraccion] = useState(false);
-    const [showFormOportunidad, setShowFormOportunidad] = useState(false);
-    const [editandoOpo, setEditandoOpo] = useState(null);
-    const [loadingAccion, setLoadingAccion] = useState(false);
+// ── Modal Editar interacción ──────────────────────────────────────────────────
+const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, onGuardado }) => {
+    const [tipo, setTipo] = useState(interaccion.tipo);
+    const [comentario, setComentario] = useState(interaccion.comentario || '');
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Form nueva interacción
-    const [formInter, setFormInter] = useState({ tipo: 'llamada', comentario: '', contacto_nombre: '', contacto_telefono: '', contacto_dni: '' });
-
-    // Form nueva/editar oportunidad
-    const [formOpo, setFormOpo] = useState({ titulo: '', producto: '', cantidad: '', cargo_fijo: '', sustento: false, comentario: '', fecha_cierre_esperada: '', entel: '', claro: '', movistar: '', otros: '', total: '', estado: 'Identificada', tabFunnel: 'Identificada', resultadoCierre: '' });
-
-    const abrirEditarOpo = (opo) => {
-        setEditandoOpo(opo._id);
-        setFormOpo({
-            titulo: opo.titulo || '',
-            producto: opo.producto || '',
-            cantidad: opo.cantidad || '',
-            cargo_fijo: opo.cargo_fijo || '',
-            sustento: opo.sustento || false,
-            comentario: opo.comentario || '',
-            fecha_cierre_esperada: opo.fecha_cierre_esperada ? new Date(opo.fecha_cierre_esperada).toISOString().split('T')[0] : '',
-            entel: opo.operadores?.entel || '',
-            claro: opo.operadores?.claro || '',
-            movistar: opo.operadores?.movistar || '',
-            otros: opo.operadores?.otros || '',
-            total: opo.operadores?.total || '',
-            estado: opo.estado || 'Identificada',
-            tabFunnel: estadoATab(opo.estado),
-            resultadoCierre: opo.estado === 'Negociada Aprobada' ? 'Aprobada' : opo.estado === 'Negociada Rechazada' ? 'Rechazada' : '',
-        });
-        setShowFormOportunidad(true);
-    };
-
-    const handleGuardarInteraccion = async () => {
-        if (!formInter.tipo) { setError('Selecciona un tipo'); return; }
-        setLoadingAccion(true);
+    const handleGuardar = async () => {
+        setLoading(true);
         try {
-            await api.post('/ficha-gestion/tipificar', {
-                ruc: ficha.ruc,
-                tipo: formInter.tipo,
-                comentario: formInter.comentario || null,
-                contacto: {
-                    nombre: formInter.contacto_nombre || null,
-                    telefono: formInter.contacto_telefono || null,
-                    dni: formInter.contacto_dni || null,
-                },
+            await api.put(`/ficha-gestion/${fichaId}/interacciones/${interaccionId}`, {
+                tipo,
+                comentario: comentario.trim() || null,
             });
-            setShowFormInteraccion(false);
-            setFormInter({ tipo: 'llamada', comentario: '', contacto_nombre: '', contacto_telefono: '', contacto_dni: '' });
             onGuardado();
-        } catch { setError('Error al guardar interacción'); }
-        finally { setLoadingAccion(false); }
+            onClose();
+        } catch { setError('Error al actualizar interacción'); }
+        finally { setLoading(false); }
     };
 
-    const handleGuardarOportunidad = async () => {
-        if (!formOpo.producto || !formOpo.cantidad || !formOpo.cargo_fijo) { setError('Producto, cantidad y cargo fijo son obligatorios'); return; }
-        if (formOpo.tabFunnel === 'Cerrada' && !formOpo.resultadoCierre) { setError('Selecciona Aprobada o Rechazada'); return; }
+    return (
+        <div className="modal-overlay">
+            <div className="modal" style={{ maxWidth: 500 }}>
+                <h2>Editar Interacción</h2>
+                {error && <p style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{error}</p>}
+                <div className="tipificaciones-grid" style={{ marginBottom: 16 }}>
+                    {TIPOS_INTERACCION.map(t => (
+                        <button key={t.key} className={`btn-tipificacion ${tipo === t.key ? 'selected' : ''}`} onClick={() => setTipo(t.key)}>
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+                <div className="form-field">
+                    <label>Comentario (opcional)</label>
+                    <textarea className="form-input" rows={3} value={comentario} onChange={e => setComentario(e.target.value)} style={{ resize: 'vertical' }} />
+                </div>
+                <div className="modal-actions">
+                    <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+                    <button className="btn-primary" onClick={handleGuardar} disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-        const estadoFinal = formOpo.tabFunnel === 'Cerrada' ? `Negociada ${formOpo.resultadoCierre}` : formOpo.tabFunnel;
+// ── Modal Ficha ───────────────────────────────────────────────────────────────
+const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
+    const [ficha, setFicha] = useState(fichaInicial);
+    const [tab, setTab] = useState('interacciones');
+    const [editandoInteraccion, setEditandoInteraccion] = useState(null);
 
-        const payload = {
-            titulo: formOpo.titulo,
-            producto: formOpo.producto,
-            cantidad: Number(formOpo.cantidad),
-            cargo_fijo: Number(formOpo.cargo_fijo),
-            sustento: formOpo.sustento,
-            comentario: formOpo.comentario || null,
-            fecha_cierre_esperada: formOpo.fecha_cierre_esperada || null,
-            estado: estadoFinal,
-            operadores: {
-                entel: Number(formOpo.entel) || 0,
-                claro: Number(formOpo.claro) || 0,
-                movistar: Number(formOpo.movistar) || 0,
-                otros: Number(formOpo.otros) || 0,
-                total: Number(formOpo.total) || 0,
-            },
-        };
-
-        setLoadingAccion(true);
+    const recargar = async () => {
         try {
-            if (editandoOpo) {
-                await api.put(`/ficha-gestion/${ficha._id}/oportunidades/${editandoOpo}`, payload);
-            } else {
-                await api.post(`/ficha-gestion/${ficha._id}/oportunidades`, payload);
-            }
-            setShowFormOportunidad(false);
-            setEditandoOpo(null);
-            setFormOpo({ titulo: '', producto: '', cantidad: '', cargo_fijo: '', sustento: false, comentario: '', fecha_cierre_esperada: '', entel: '', claro: '', movistar: '', otros: '', total: '', estado: 'Identificada', tabFunnel: 'Identificada', resultadoCierre: '' });
+            const res = await api.get(`/ficha-gestion/${ficha._id}`);
+            setFicha(res.data);
             onGuardado();
-        } catch { setError('Error al guardar oportunidad'); }
-        finally { setLoadingAccion(false); }
+        } catch (err) { console.error(err); }
     };
 
     return (
@@ -162,15 +110,13 @@ const ModalFicha = ({ ficha, onClose, onGuardado }) => {
                 <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 12, color: '#888' }}>{ficha.ruc}</div>
                     <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e' }}>{ficha.razon_social}</div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 12, color: '#555' }}>Segmento: {ficha.segmento || '—'}</span>
-                        <span style={{ fontSize: 12, color: '#555' }}>Líneas: {ficha.total_lineas || 0}</span>
-                        <span style={{ fontSize: 12, color: '#555' }}>Inicio: {fmt(ficha.fechas?.fecha_inicio)}</span>
-                        <span style={{ fontSize: 12, color: '#555' }}>Último contacto: {fmt(ficha.fechas?.fecha_ultimo_contacto)}</span>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap', fontSize: 12, color: '#555' }}>
+                        <span>Segmento: {ficha.segmento || '—'}</span>
+                        <span>Líneas: {ficha.total_lineas || 0}</span>
+                        <span>Inicio: {fmt(ficha.fechas?.fecha_inicio)}</span>
+                        <span>Último contacto: {fmt(ficha.fechas?.fecha_ultimo_contacto)}</span>
                     </div>
                 </div>
-
-                {error && <p style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{error}</p>}
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: '2px solid #f0f0f0' }}>
@@ -182,43 +128,9 @@ const ModalFicha = ({ ficha, onClose, onGuardado }) => {
                     </button>
                 </div>
 
-                {/* Tab Interacciones */}
+                {/* Tab Interacciones — solo lectura + editar tipo/comentario */}
                 {tab === 'interacciones' && (
                     <div>
-                        <button className="btn-primary" style={{ marginBottom: 12, fontSize: 12 }} onClick={() => setShowFormInteraccion(v => !v)}>
-                            <FontAwesomeIcon icon={faPlus} /> Nueva Interacción
-                        </button>
-
-                        {showFormInteraccion && (
-                            <div style={{ background: '#f9f9f9', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-                                <div className="tipificaciones-grid" style={{ marginBottom: 12 }}>
-                                    {TIPOS_INTERACCION.map(t => (
-                                        <button key={t.key} className={`btn-tipificacion ${formInter.tipo === t.key ? 'selected' : ''}`} onClick={() => setFormInter(f => ({ ...f, tipo: t.key }))}>
-                                            {t.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
-                                    <div className="form-field"><label>Nombre contacto</label>
-                                        <input className="form-input" value={formInter.contacto_nombre} onChange={e => setFormInter(f => ({ ...f, contacto_nombre: e.target.value }))} />
-                                    </div>
-                                    <div className="form-field"><label>Teléfono</label>
-                                        <input className="form-input" value={formInter.contacto_telefono} onChange={e => setFormInter(f => ({ ...f, contacto_telefono: e.target.value }))} />
-                                    </div>
-                                    <div className="form-field"><label>DNI</label>
-                                        <input className="form-input" value={formInter.contacto_dni} onChange={e => setFormInter(f => ({ ...f, contacto_dni: e.target.value }))} />
-                                    </div>
-                                </div>
-                                <div className="form-field"><label>Comentario</label>
-                                    <textarea className="form-input" rows={2} value={formInter.comentario} onChange={e => setFormInter(f => ({ ...f, comentario: e.target.value }))} style={{ resize: 'vertical' }} />
-                                </div>
-                                <div className="modal-actions" style={{ marginTop: 8 }}>
-                                    <button className="btn-secondary" onClick={() => setShowFormInteraccion(false)}>Cancelar</button>
-                                    <button className="btn-primary" onClick={handleGuardarInteraccion} disabled={loadingAccion}>{loadingAccion ? 'Guardando...' : 'Guardar'}</button>
-                                </div>
-                            </div>
-                        )}
-
                         {ficha.interacciones?.length === 0 ? (
                             <p style={{ color: '#999', textAlign: 'center', padding: 20 }}>Sin interacciones registradas</p>
                         ) : (
@@ -227,7 +139,16 @@ const ModalFicha = ({ ficha, onClose, onGuardado }) => {
                                     <div key={i} style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: '10px 14px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                                             <TipoBadge tipo={inter.tipo} />
-                                            <span style={{ fontSize: 11, color: '#888' }}>{fmt(inter.fecha)}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <span style={{ fontSize: 11, color: '#888' }}>{fmt(inter.fecha)}</span>
+                                                <button
+                                                    className="btn-secondary"
+                                                    style={{ fontSize: 11, padding: '2px 8px' }}
+                                                    onClick={() => setEditandoInteraccion(inter)}
+                                                >
+                                                    <FontAwesomeIcon icon={faPen} /> Editar
+                                                </button>
+                                            </div>
                                         </div>
                                         {inter.contacto?.nombre && (
                                             <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>
@@ -249,88 +170,9 @@ const ModalFicha = ({ ficha, onClose, onGuardado }) => {
                     </div>
                 )}
 
-                {/* Tab Oportunidades */}
+                {/* Tab Oportunidades — solo lectura */}
                 {tab === 'oportunidades' && (
                     <div>
-                        <button className="btn-primary" style={{ marginBottom: 12, fontSize: 12 }} onClick={() => { setEditandoOpo(null); setShowFormOportunidad(v => !v); setFormOpo({ titulo: '', producto: '', cantidad: '', cargo_fijo: '', sustento: false, comentario: '', fecha_cierre_esperada: '', entel: '', claro: '', movistar: '', otros: '', total: '', estado: 'Identificada', tabFunnel: 'Identificada', resultadoCierre: '' }); }}>
-                            <FontAwesomeIcon icon={faPlus} /> Nueva Oportunidad
-                        </button>
-
-                        {showFormOportunidad && (
-                            <div style={{ background: '#f9f9f9', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-                                {/* Tabs funnel */}
-                                <div className="funnel-tabs" style={{ marginBottom: 12 }}>
-                                    {TABS_FUNNEL.map((t, i) => {
-                                        const idxActual = TABS_FUNNEL.findIndex(tt => tt.key === estadoATab(editandoOpo ? formOpo.estado : 'Identificada'));
-                                        const bloqueado = !editandoOpo && i > 0;
-                                        return (
-                                            <button key={t.key}
-                                                className={`funnel-tab ${formOpo.tabFunnel === t.key ? 'active' : ''} ${bloqueado ? 'blocked' : ''}`}
-                                                onClick={() => !bloqueado && setFormOpo(f => ({ ...f, tabFunnel: t.key }))}
-                                                disabled={bloqueado}
-                                            >
-                                                <span className="tab-num">{t.num}</span> {t.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {formOpo.tabFunnel === 'Cerrada' && (
-                                    <div className="negociada-selector" style={{ marginBottom: 12 }}>
-                                        <span style={{ fontSize: 13, color: '#555', fontWeight: 600 }}>Resultado:</span>
-                                        <button className={`btn-negociada aprobada ${formOpo.resultadoCierre === 'Aprobada' ? 'selected' : ''}`} onClick={() => setFormOpo(f => ({ ...f, resultadoCierre: 'Aprobada' }))}>✓ Aprobada</button>
-                                        <button className={`btn-negociada rechazada ${formOpo.resultadoCierre === 'Rechazada' ? 'selected' : ''}`} onClick={() => setFormOpo(f => ({ ...f, resultadoCierre: 'Rechazada' }))}>✕ Rechazada</button>
-                                    </div>
-                                )}
-
-                                <div className="form-field"><label>Título</label>
-                                    <input className="form-input" value={formOpo.titulo} onChange={e => setFormOpo(f => ({ ...f, titulo: e.target.value }))} placeholder="Ej: Renovación 20 líneas" />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                                    <div className="form-field"><label>Producto *</label>
-                                        <select className="form-input" value={formOpo.producto} onChange={e => setFormOpo(f => ({ ...f, producto: e.target.value }))}>
-                                            <option value="">-- Seleccionar --</option>
-                                            {PRODUCTOS.map(p => <option key={p} value={p}>{p}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-field"><label>Cantidad *</label>
-                                        <input type="number" className="form-input" value={formOpo.cantidad} onChange={e => setFormOpo(f => ({ ...f, cantidad: e.target.value }))} min="1" />
-                                    </div>
-                                    <div className="form-field"><label>Cargo Fijo *</label>
-                                        <input type="number" className="form-input" value={formOpo.cargo_fijo} onChange={e => setFormOpo(f => ({ ...f, cargo_fijo: e.target.value }))} />
-                                    </div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                    <div className="form-field"><label>Fecha cierre esperada</label>
-                                        <input type="date" className="form-input" value={formOpo.fecha_cierre_esperada} onChange={e => setFormOpo(f => ({ ...f, fecha_cierre_esperada: e.target.value }))} />
-                                    </div>
-                                    <div className="form-field" style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 20 }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                                            <input type="checkbox" checked={formOpo.sustento} onChange={e => setFormOpo(f => ({ ...f, sustento: e.target.checked }))} />
-                                            Sustento cargado
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="form-field"><label>Operadores actuales</label>
-                                    <div className="operadores-grid">
-                                        {['entel', 'claro', 'movistar', 'otros', 'total'].map(op => (
-                                            <div key={op} className="operador-field">
-                                                <label>{op.charAt(0).toUpperCase() + op.slice(1)}</label>
-                                                <input type="number" value={formOpo[op]} onChange={e => setFormOpo(f => ({ ...f, [op]: e.target.value }))} min="0" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="form-field"><label>Comentario</label>
-                                    <textarea className="form-input" rows={2} value={formOpo.comentario} onChange={e => setFormOpo(f => ({ ...f, comentario: e.target.value }))} style={{ resize: 'vertical' }} />
-                                </div>
-                                <div className="modal-actions" style={{ marginTop: 8 }}>
-                                    <button className="btn-secondary" onClick={() => { setShowFormOportunidad(false); setEditandoOpo(null); }}>Cancelar</button>
-                                    <button className="btn-primary" onClick={handleGuardarOportunidad} disabled={loadingAccion}>{loadingAccion ? 'Guardando...' : editandoOpo ? 'Actualizar' : 'Agregar'}</button>
-                                </div>
-                            </div>
-                        )}
-
                         {ficha.oportunidades?.length === 0 ? (
                             <p style={{ color: '#999', textAlign: 'center', padding: 20 }}>Sin oportunidades registradas</p>
                         ) : (
@@ -338,11 +180,8 @@ const ModalFicha = ({ ficha, onClose, onGuardado }) => {
                                 {ficha.oportunidades.map((opo, i) => (
                                     <div key={opo._id} style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: '12px 16px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                            <div style={{ fontWeight: 600, fontSize: 14 }}>{opo.titulo || `Oportunidad ${i + 1}`}</div>
-                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                                <EstadoOpoBadge estado={opo.estado} />
-                                                <button className="btn-secondary" style={{ fontSize: 11, padding: '3px 10px' }} onClick={() => abrirEditarOpo(opo)}>Editar</button>
-                                            </div>
+                                            <div style={{ fontWeight: 600, fontSize: 14 }}>{opo.titulo || opo.producto || `Oportunidad ${i + 1}`}</div>
+                                            <EstadoOpoBadge estado={opo.estado} />
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, fontSize: 12, color: '#555' }}>
                                             <div><span style={{ color: '#888' }}>Producto:</span> {opo.producto || '—'}</div>
@@ -367,6 +206,16 @@ const ModalFicha = ({ ficha, onClose, onGuardado }) => {
                 <div className="modal-actions" style={{ marginTop: 20 }}>
                     <button className="btn-secondary" onClick={onClose}>Cerrar</button>
                 </div>
+
+                {editandoInteraccion && (
+                    <ModalEditarInteraccion
+                        interaccion={editandoInteraccion}
+                        fichaId={ficha._id}
+                        interaccionId={editandoInteraccion._id}
+                        onClose={() => setEditandoInteraccion(null)}
+                        onGuardado={() => { setEditandoInteraccion(null); recargar(); }}
+                    />
+                )}
             </div>
         </div>
     );
@@ -398,7 +247,6 @@ const MisGestiones = () => {
         finally { setLoading(false); }
     }, [busqueda, estadoFiltro]);
 
-    // Recargar ficha individual después de guardar
     const recargarFicha = async (fichaId) => {
         try {
             const res = await api.get(`/ficha-gestion/${fichaId}`);
@@ -412,19 +260,17 @@ const MisGestiones = () => {
         searchTimeout.current = setTimeout(() => cargar(1), 400);
     }, [busqueda, estadoFiltro]);
 
-    // Última interacción de la ficha
     const ultimaInteraccion = (ficha) => {
         if (!ficha.interacciones?.length) return null;
         return ficha.interacciones[ficha.interacciones.length - 1];
     };
 
-    // Oportunidad más avanzada
     const opoMasAvanzada = (ficha) => {
         if (!ficha.oportunidades?.length) return null;
         const orden = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
-        return ficha.oportunidades.reduce((best, opo) => {
-            return orden.indexOf(opo.estado) > orden.indexOf(best.estado) ? opo : best;
-        });
+        return ficha.oportunidades.reduce((best, opo) =>
+            orden.indexOf(opo.estado) > orden.indexOf(best.estado) ? opo : best
+        );
     };
 
     return (
@@ -495,7 +341,7 @@ const MisGestiones = () => {
                                             </td>
                                             <td>
                                                 <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
-                                                    <FontAwesomeIcon icon={faEye} /> Ver
+                                                    <FontAwesomeIcon icon={faPen} /> Editar
                                                 </button>
                                             </td>
                                         </tr>

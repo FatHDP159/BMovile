@@ -148,6 +148,21 @@ router.patch('/:id/archivar', verifyToken, verifyRole('supervisor', 'sistemas'),
     }
 });
 
+// ── POST /migrar — Migrar gestiones antiguas a fichas (temporal) ────────────
+router.post('/migrar', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const gestiones = await Gestion.find({})
+            .populate('asesor.id_asesor', 'nombre_user')
+            .sort({ createdAt: 1 });
 
+        const resultado = await fichaGestionRepository.migrarDesdeGestiones(gestiones);
+        res.json({
+            message: `Migración completada: ${resultado.creadas} fichas creadas desde ${resultado.total} gestiones`,
+            ...resultado,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error en migración', error: error.message });
+    }
+});
 
 module.exports = router;

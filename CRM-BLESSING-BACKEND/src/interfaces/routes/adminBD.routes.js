@@ -278,6 +278,4 @@ router.post('/asignar-masivo', verifyToken, verifyRole('sistemas'), async (req, 
     }
 });
 
-
-
 module.exports = router;

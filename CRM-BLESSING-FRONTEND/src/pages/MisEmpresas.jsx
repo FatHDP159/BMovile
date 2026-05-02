@@ -125,7 +125,7 @@ const EmpresaCard = ({ empresa, onAgregarContacto, onTipificar, onVerRRLL, onVer
                     {empresa.sunat?.direccion && (
                         <button
                             onClick={() => onVerDireccion(empresa)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D2558', fontSize: 12, padding: '2px 6px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f4f4f4', fontSize: 12, padding: '2px 6px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}
                             title="Ver dirección completa"
                         >
                             <FontAwesomeIcon icon={faLocationDot} /> Ver dirección

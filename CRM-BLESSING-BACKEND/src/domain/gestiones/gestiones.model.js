@@ -23,6 +23,7 @@ const gestionSchema = new mongoose.Schema(
             enum: ['interesado', 'cliente_claro', 'sin_contacto', 'con_deuda', 'no_contesta', 'cliente_no_interesado', 'empresa_con_sustento_valido'],
             required: true,
         },
+        comentario: { type: String, default: null },
         oportunidad: {
             titulo:     { type: String, default: null },
             producto:   { type: String, default: null },

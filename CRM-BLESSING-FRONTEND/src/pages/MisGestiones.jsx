@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faClipboardList, faChevronLeft, faChevronRight, faPen,
-    faPhone, faEnvelope, faIdCard, faBriefcase
+    faPhone, faIdCard, faBriefcase, faComment
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Usuarios.css';
@@ -18,10 +18,9 @@ const TIPOS = [
     { key: 'empresa_con_sustento_valido', label: 'Empresa con Sustento Válido', color: 'tipo-sustento-valido' },
 ];
 
-const PRODUCTOS = [
-    'Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH',
-    'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'
-];
+const ESTADOS_OPORTUNIDAD = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
+
+const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
 
 const fmt = (fecha) => {
     if (!fecha) return '—';
@@ -34,7 +33,7 @@ const TipoBadge = ({ tipo }) => {
     return <span className={`tipo-badge ${t?.color || ''}`}>{t?.label || tipo}</span>;
 };
 
-// ── Modal Contacto ──────────────────────────────────────────────────────────
+// ── Modal Contacto ────────────────────────────────────────────────────────────
 const ModalContacto = ({ gestion, onClose }) => (
     <div className="modal-overlay">
         <div className="modal" style={{ maxWidth: 420 }}>
@@ -65,6 +64,15 @@ const ModalContacto = ({ gestion, onClose }) => (
             ) : (
                 <p style={{ color: '#999', textAlign: 'center', padding: '16px 0' }}>Sin contacto registrado</p>
             )}
+            {/* Comentario */}
+            {gestion.comentario && (
+                <div style={{ marginTop: 16, background: '#f5f5f5', borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>
+                        <FontAwesomeIcon icon={faComment} style={{ marginRight: 6 }} />Comentario
+                    </div>
+                    <div style={{ fontSize: 13, color: '#333' }}>{gestion.comentario}</div>
+                </div>
+            )}
             <div className="modal-actions">
                 <button className="btn-secondary" onClick={onClose}>Cerrar</button>
             </div>
@@ -72,10 +80,11 @@ const ModalContacto = ({ gestion, onClose }) => (
     </div>
 );
 
-// ── Modal Editar ────────────────────────────────────────────────────────────
+// ── Modal Editar ──────────────────────────────────────────────────────────────
 const ModalEditar = ({ gestion, onClose, onGuardado }) => {
     const [tipo, setTipo] = useState(gestion.tipo_tipificacion);
     const [form, setForm] = useState({
+        comentario: gestion.comentario || '',
         titulo: gestion.oportunidad?.titulo || '',
         producto: gestion.oportunidad?.producto || '',
         cantidad: gestion.oportunidad?.cantidad || '',
@@ -93,7 +102,10 @@ const ModalEditar = ({ gestion, onClose, onGuardado }) => {
     const handleGuardar = async () => {
         setLoading(true);
         try {
-            const payload = { tipo_tipificacion: tipo };
+            const payload = {
+                tipo_tipificacion: tipo,
+                comentario: form.comentario.trim() || null,
+            };
             if (tipo === 'interesado') {
                 payload.oportunidad = {
                     titulo: form.titulo,
@@ -108,12 +120,13 @@ const ModalEditar = ({ gestion, onClose, onGuardado }) => {
                         total: Number(form.total_lineas),
                     },
                     estado: form.estado,
+                    comentario: form.comentario.trim() || null,
                 };
             }
             await api.put(`/gestiones/${gestion._id}`, payload);
             onGuardado();
             onClose();
-        } catch (err) {
+        } catch {
             setError('Error al actualizar gestión');
         } finally {
             setLoading(false);
@@ -137,38 +150,29 @@ const ModalEditar = ({ gestion, onClose, onGuardado }) => {
 
                 {tipo === 'interesado' && (
                     <div className="oportunidad-form">
-                        <div className="form-field">
-                            <label>Estado de Oportunidad</label>
+                        <div className="form-field"><label>Estado de Oportunidad</label>
                             <select className="form-input" value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
-                                <option>Identificada</option>
-                                <option>En proceso</option>
-                                <option>Ganada</option>
-                                <option>Perdida</option>
+                                {ESTADOS_OPORTUNIDAD.map(e => <option key={e} value={e}>{e}</option>)}
                             </select>
                         </div>
-                        <div className="form-field">
-                            <label>Título de Oportunidad</label>
+                        <div className="form-field"><label>Título de Oportunidad</label>
                             <input className="form-input" value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} placeholder="Ej: Renovación 20 líneas" />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <div className="form-field">
-                                <label>Producto</label>
+                            <div className="form-field"><label>Producto</label>
                                 <select className="form-input" value={form.producto} onChange={e => setForm({ ...form, producto: e.target.value })}>
                                     <option value="">-- Seleccionar --</option>
                                     {PRODUCTOS.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             </div>
-                            <div className="form-field">
-                                <label>Cantidad</label>
+                            <div className="form-field"><label>Cantidad</label>
                                 <input type="number" className="form-input" value={form.cantidad} onChange={e => setForm({ ...form, cantidad: e.target.value })} min="1" />
                             </div>
                         </div>
-                        <div className="form-field">
-                            <label>Cargo Fijo (S/.)</label>
+                        <div className="form-field"><label>Cargo Fijo (S/.)</label>
                             <input type="number" className="form-input" value={form.cargo_fijo} onChange={e => setForm({ ...form, cargo_fijo: e.target.value })} />
                         </div>
-                        <div className="form-field">
-                            <label>Operadores actuales</label>
+                        <div className="form-field"><label>Operadores actuales</label>
                             <div className="operadores-grid">
                                 {['entel', 'claro', 'movistar', 'otros', 'total_lineas'].map(op => (
                                     <div key={op} className="operador-field">
@@ -181,6 +185,19 @@ const ModalEditar = ({ gestion, onClose, onGuardado }) => {
                     </div>
                 )}
 
+                {/* Comentario para todos los tipos */}
+                <div className="form-field" style={{ marginTop: 16 }}>
+                    <label>Comentario (opcional)</label>
+                    <textarea
+                        className="form-input"
+                        value={form.comentario}
+                        onChange={e => setForm({ ...form, comentario: e.target.value })}
+                        placeholder="Añade un comentario sobre esta gestión..."
+                        rows={3}
+                        style={{ resize: 'vertical' }}
+                    />
+                </div>
+
                 <div className="modal-actions">
                     <button className="btn-secondary" onClick={onClose}>Cancelar</button>
                     <button className="btn-primary" onClick={handleGuardar} disabled={loading}>
@@ -192,19 +209,17 @@ const ModalEditar = ({ gestion, onClose, onGuardado }) => {
     );
 };
 
-// ── Página principal ────────────────────────────────────────────────────────
+// ── Página principal ──────────────────────────────────────────────────────────
 const MisGestiones = () => {
     const [gestiones, setGestiones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-
     const [busqueda, setBusqueda] = useState('');
     const [filtroTipo, setFiltroTipo] = useState('');
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
-
     const [modalEditar, setModalEditar] = useState(null);
     const [modalContacto, setModalContacto] = useState(null);
     const searchTimeout = useRef();
@@ -219,11 +234,8 @@ const MisGestiones = () => {
             setTotal(res.data.total);
             setTotalPages(res.data.totalPages);
             setPage(p);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
     }, [busqueda, filtroTipo, fechaDesde, fechaHasta]);
 
     useEffect(() => {
@@ -241,28 +253,19 @@ const MisGestiones = () => {
             </div>
 
             <div className="search-bar" style={{ flexWrap: 'wrap' }}>
-                <input
-                    className="search-input"
-                    placeholder="Buscar por RUC o razón social..."
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                />
+                <input className="search-input" placeholder="Buscar por RUC o razón social..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
                 <select className="filter-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
                     <option value="">Todos los tipos</option>
                     {TIPOS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
                 </select>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#555' }}>
-                    Desde:
-                    <input type="date" className="filter-select" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
-                    Hasta:
-                    <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
+                    Desde: <input type="date" className="filter-select" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
+                    Hasta: <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
                 </div>
             </div>
 
             <div className="table-container">
-                {loading ? (
-                    <p style={{ padding: 20 }}>Cargando...</p>
-                ) : gestiones.length === 0 ? (
+                {loading ? <p style={{ padding: 20 }}>Cargando...</p> : gestiones.length === 0 ? (
                     <p style={{ padding: 20, color: '#999' }}>No se encontraron gestiones.</p>
                 ) : (
                     <>
@@ -276,6 +279,7 @@ const MisGestiones = () => {
                                     <th>Líneas</th>
                                     <th>Tipo</th>
                                     <th>Oportunidad</th>
+                                    <th>Comentario</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -284,18 +288,24 @@ const MisGestiones = () => {
                                     <tr key={g._id}>
                                         <td>{fmt(g.fechas?.fecha_tipificacion)}</td>
                                         <td>
-                                            <button className="btn-ruc" onClick={() => setModalContacto(g)}>
-                                                {g.ruc}
-                                            </button>
+                                            <button className="btn-ruc" onClick={() => setModalContacto(g)}>{g.ruc}</button>
                                         </td>
                                         <td>{g.razon_social}</td>
                                         <td>{g.segmento || '—'}</td>
                                         <td>{g.total_lineas || '—'}</td>
                                         <td><TipoBadge tipo={g.tipo_tipificacion} /></td>
                                         <td>
-                                            {g.tipo_tipificacion === 'interesado' && g.oportunidad?.titulo ? (
-                                                <span className="oportunidad-titulo">{g.oportunidad.titulo}</span>
-                                            ) : '—'}
+                                            {g.tipo_tipificacion === 'interesado' && g.oportunidad?.titulo
+                                                ? <span className="oportunidad-titulo">{g.oportunidad.titulo}</span>
+                                                : '—'}
+                                        </td>
+                                        <td>
+                                            {g.comentario
+                                                ? <span title={g.comentario} style={{ fontSize: 12, color: '#555', cursor: 'help' }}>
+                                                    <FontAwesomeIcon icon={faComment} style={{ marginRight: 4, color: '#1D2558' }} />
+                                                    {g.comentario.length > 30 ? g.comentario.slice(0, 30) + '...' : g.comentario}
+                                                  </span>
+                                                : '—'}
                                         </td>
                                         <td>
                                             <button className="btn-estado btn-asignar" onClick={() => setModalEditar(g)}>
@@ -311,12 +321,8 @@ const MisGestiones = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
                                 <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} gestiones</span>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                    <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}>
-                                        <FontAwesomeIcon icon={faChevronLeft} />
-                                    </button>
-                                    <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}>
-                                        <FontAwesomeIcon icon={faChevronRight} />
-                                    </button>
+                                    <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
+                                    <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
                                 </div>
                             </div>
                         )}
@@ -324,12 +330,8 @@ const MisGestiones = () => {
                 )}
             </div>
 
-            {modalContacto && (
-                <ModalContacto gestion={modalContacto} onClose={() => setModalContacto(null)} />
-            )}
-            {modalEditar && (
-                <ModalEditar gestion={modalEditar} onClose={() => setModalEditar(null)} onGuardado={() => cargar(page)} />
-            )}
+            {modalContacto && <ModalContacto gestion={modalContacto} onClose={() => setModalContacto(null)} />}
+            {modalEditar && <ModalEditar gestion={modalEditar} onClose={() => setModalEditar(null)} onGuardado={() => cargar(page)} />}
         </div>
     );
 };

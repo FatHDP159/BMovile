@@ -1,30 +1,67 @@
 const Gestion = require('../../domain/gestiones/gestiones.model.js');
 const BdGeneral = require('../../domain/db_general/db_general.models.js');
+const EmpresaV2 = require('../../domain/empresaV2/empresaV2.model.js');
 
 const gestionesRepository = {
 
     create: async (data) => {
-        const empresa = await BdGeneral.findOne({ ruc: data.ruc });
+        // Buscar primero en empresas_v2, fallback a bdgenerals
+        const empresaV2 = await EmpresaV2.findOne({ ruc: data.ruc });
+        const empresaLegacy = !empresaV2 ? await BdGeneral.findOne({ ruc: data.ruc }) : null;
+
         const gestion = new Gestion({
             ...data,
-            segmento: empresa?.segmento || null,
-            total_lineas: empresa?.lineas?.total || 0,
+            segmento: empresaV2?.salesforce?.segmento || empresaLegacy?.segmento || null,
+            total_lineas: empresaV2?.osiptel?.total || empresaLegacy?.lineas?.total || 0,
             fechas: { fecha_tipificacion: new Date() },
         });
         const saved = await gestion.save();
 
         const fechaDesasignacion = new Date();
         fechaDesasignacion.setDate(fechaDesasignacion.getDate() + 30);
-        await BdGeneral.findOneAndUpdate(
-            { ruc: data.ruc },
-            { estado_base: 'trabajada', 'asignacion.fecha_desasignacion': fechaDesasignacion }
-        );
+
+        // Actualizar estado en empresas_v2 si existe, si no en bdgenerals
+        if (empresaV2) {
+            await EmpresaV2.findOneAndUpdate(
+                { ruc: data.ruc },
+                { estado_base: 'trabajada', 'asignacion.fecha_desasignacion': fechaDesasignacion },
+                { new: true }
+            );
+        } else {
+            await BdGeneral.findOneAndUpdate(
+                { ruc: data.ruc },
+                { estado_base: 'trabajada', 'asignacion.fecha_desasignacion': fechaDesasignacion },
+                { new: true }
+            );
+        }
 
         return saved;
     },
 
-    findAll: async () => {
-        return await Gestion.find().populate('asesor.id_asesor', 'nombre_user dni_user').sort({ createdAt: -1 });
+    findAll: async ({ busqueda, tipo, fecha_desde, fecha_hasta, asesor_id, page = 1, limit = 50 } = {}) => {
+        const filtro = {};
+        if (busqueda) filtro.$or = [
+            { ruc: { $regex: busqueda, $options: 'i' } },
+            { razon_social: { $regex: busqueda, $options: 'i' } },
+        ];
+        if (tipo) filtro.tipo_tipificacion = tipo;
+        if (asesor_id) filtro['asesor.id_asesor'] = asesor_id;
+        if (fecha_desde || fecha_hasta) {
+            filtro['fechas.fecha_tipificacion'] = {};
+            if (fecha_desde) filtro['fechas.fecha_tipificacion'].$gte = new Date(fecha_desde);
+            if (fecha_hasta) {
+                const fin = new Date(fecha_hasta);
+                fin.setDate(fin.getDate() + 1);
+                filtro['fechas.fecha_tipificacion'].$lte = fin;
+            }
+        }
+        const skip = (page - 1) * limit;
+        const total = await Gestion.countDocuments(filtro);
+        const gestiones = await Gestion.find(filtro)
+            .populate('asesor.id_asesor', 'nombre_user dni_user')
+            .skip(skip).limit(limit)
+            .sort({ createdAt: -1 });
+        return { gestiones, total, page, totalPages: Math.ceil(total / limit) };
     },
 
     findByAsesor: async (id_asesor, { busqueda, tipo, fecha_desde, fecha_hasta, page = 1, limit = 50 } = {}) => {
@@ -45,7 +82,9 @@ const gestionesRepository = {
         }
         const skip = (page - 1) * limit;
         const total = await Gestion.countDocuments(filtro);
-        const gestiones = await Gestion.find(filtro).skip(skip).limit(limit).sort({ 'fechas.fecha_tipificacion': -1 });
+        const gestiones = await Gestion.find(filtro)
+            .skip(skip).limit(limit)
+            .sort({ 'fechas.fecha_tipificacion': -1 });
         return { gestiones, total, page, totalPages: Math.ceil(total / limit) };
     },
 
@@ -54,12 +93,10 @@ const gestionesRepository = {
     },
 
     update: async (id, data) => {
-        // Si se marca como Negociada Aprobada, guardar fecha_ganada
         const updateData = { ...data };
         if (data.oportunidad?.estado === 'Negociada Aprobada') {
             updateData['fechas.fecha_ganada'] = new Date();
         }
-        // Si se cambia de Negociada Aprobada a otro estado, limpiar fecha_ganada
         if (data.oportunidad?.estado && data.oportunidad.estado !== 'Negociada Aprobada') {
             updateData['fechas.fecha_ganada'] = null;
         }

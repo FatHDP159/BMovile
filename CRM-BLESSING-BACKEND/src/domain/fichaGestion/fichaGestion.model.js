@@ -10,8 +10,15 @@ const interaccionSchema = new mongoose.Schema({
     fecha: { type: Date, default: Date.now },
     tipo: {
         type: String,
-        enum: ['llamada', 'sin_contacto', 'con_deuda', 'no_contesta',
-               'cliente_claro', 'empresa_con_sustento_valido', 'cliente_no_interesado'],
+        enum: [
+            'interesado',
+            'sin_contacto',
+            'con_deuda',
+            'no_contesta',
+            'cliente_claro',
+            'cliente_no_interesado',
+            'empresa_con_sustento_valido',
+        ],
         required: true,
     },
     comentario:   { type: String, default: null },
@@ -58,7 +65,7 @@ const fichaGestionSchema = new mongoose.Schema({
         id_asesor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     },
 
-    activa: { type: Boolean, default: true }, // false = archivada
+    activa: { type: Boolean, default: true },
 
     estado_general: {
         type: String,
@@ -77,7 +84,6 @@ const fichaGestionSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-// Índices
 fichaGestionSchema.index({ ruc: 1, 'asesor.id_asesor': 1, activa: 1 });
 fichaGestionSchema.index({ 'asesor.id_asesor': 1, activa: 1 });
 fichaGestionSchema.index({ ruc: 1, activa: 1 });

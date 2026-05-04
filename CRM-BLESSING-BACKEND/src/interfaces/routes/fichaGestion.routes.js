@@ -174,9 +174,9 @@ router.post('/arreglar-contactos', verifyToken, verifyRole('sistemas'), async (r
     try {
         
         const Gestion = require('../../domain/gestiones/gestiones.model.js');
-        const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js'); // ← AGREGAR
+        const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js');
         const fichas = await FichaGestion.find({ 'oportunidades.0': { $exists: true } });
-
+        
         let actualizadas = 0;
 
         for (const ficha of fichas) {

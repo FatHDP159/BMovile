@@ -172,8 +172,11 @@ router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('as
 // POST /arreglar-contactos — Copia contactos de gestiones a oportunidades (temporal)
 router.post('/arreglar-contactos', verifyToken, verifyRole('sistemas'), async (req, res) => {
     try {
+        
         const Gestion = require('../../domain/gestiones/gestiones.model.js');
+        const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js'); // ← AGREGAR
         const fichas = await FichaGestion.find({ 'oportunidades.0': { $exists: true } });
+
         let actualizadas = 0;
 
         for (const ficha of fichas) {

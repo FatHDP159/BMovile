@@ -172,18 +172,28 @@ router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('as
 // POST /arreglar-contactos — Copia contactos de gestiones a oportunidades (temporal)
 router.post('/arreglar-contactos', verifyToken, verifyRole('sistemas'), async (req, res) => {
     try {
-        
-        const Gestion = require('../../domain/gestiones/gestiones.model.js');
-        const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js');
         const fichas = await FichaGestion.find({ 'oportunidades.0': { $exists: true } });
-        
         let actualizadas = 0;
+
+        const mapearEstado = (estado) => {
+            if (estado === 'Ganada') return 'Negociada Aprobada';
+            if (estado === 'Perdida') return 'Negociada Rechazada';
+            if (estado === 'En proceso') return 'Negociación';
+            const validos = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
+            return validos.includes(estado) ? estado : 'Identificada';
+        };
 
         for (const ficha of fichas) {
             let modificada = false;
             for (const opo of ficha.oportunidades) {
+                // Corregir estado inválido
+                const estadoCorregido = mapearEstado(opo.estado);
+                if (estadoCorregido !== opo.estado) {
+                    opo.estado = estadoCorregido;
+                    modificada = true;
+                }
+                // Copiar contacto si falta
                 if (!opo.contacto?.nombre) {
-                    // Buscar gestión original de tipo interesado para este ruc+asesor
                     const gestion = await Gestion.findOne({
                         ruc: ficha.ruc,
                         'asesor.id_asesor': ficha.asesor.id_asesor,

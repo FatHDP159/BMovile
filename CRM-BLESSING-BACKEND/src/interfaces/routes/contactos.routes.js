@@ -10,10 +10,11 @@ const ContactoRRLL = require('../../domain/contactos/contactoRRLL.model.js');
 const ContactoRRLLDato = require('../../domain/contactos/contactoRRLLDato.model.js');
 
 const fu = fileUpload({ limits: { fileSize: 50 * 1024 * 1024 } });
+
 const clean = (v) => {
-    if (!v) return null;
+    if (v === null || v === undefined) return null;
     const s = String(v).trim();
-    return ['N/A','#N/A','null','undefined','0',''].includes(s) ? null : s;
+    return ['N/A', '#N/A', 'null', 'undefined', '0', ''].includes(s) ? null : s;
 };
 
 // Helper — importar datos (tel/correo) de un contacto
@@ -53,7 +54,7 @@ router.post('/autorizados/importar', verifyToken, verifyRole('sistemas'), fu, as
         for (const [i, f] of filas.entries()) {
             const ruc    = clean(f['ruc']);
             const nombre = clean(f['nombre']);
-            if (!ruc || !nombre) { errores.push({ fila: i+2, error: 'ruc y nombre son obligatorios' }); continue; }
+            if (!ruc || !nombre) { errores.push({ fila: i + 2, error: 'ruc y nombre son obligatorios' }); continue; }
 
             try {
                 const datos = {
@@ -61,7 +62,6 @@ router.post('/autorizados/importar', verifyToken, verifyRole('sistemas'), fu, as
                     dni:   clean(f['dni']),
                 };
 
-                // Upsert contacto por ruc + nombre
                 const result = await ContactoAutorizado.findOneAndUpdate(
                     { ruc, nombre },
                     { $set: datos, $setOnInsert: { ruc, nombre } },
@@ -71,9 +71,11 @@ router.post('/autorizados/importar', verifyToken, verifyRole('sistemas'), fu, as
                 if (result.lastErrorObject?.upserted) insertados++;
                 else actualizados++;
 
-                const contacto = result.value;
-                await importarDatos(ContactoAutorizadoDato, contacto._id, ruc, f);
-            } catch (err) { errores.push({ fila: i+2, error: err.message }); }
+                // FIX: buscar el contacto para asegurar _id correcto
+                const contacto = await ContactoAutorizado.findOne({ ruc, nombre });
+                if (contacto) await importarDatos(ContactoAutorizadoDato, contacto._id, ruc, f);
+
+            } catch (err) { errores.push({ fila: i + 2, error: err.message }); }
         }
 
         res.json({ message: 'Contactos autorizados importados', insertados, actualizados, errores: errores.slice(0, 20) });
@@ -93,7 +95,7 @@ router.post('/rrll/importar', verifyToken, verifyRole('sistemas'), fu, async (re
         for (const [i, f] of filas.entries()) {
             const ruc    = clean(f['ruc']);
             const nombre = clean(f['nombre'] ?? f['NOMBRE_RRLL']);
-            if (!ruc || !nombre) { errores.push({ fila: i+2, error: 'ruc y nombre son obligatorios' }); continue; }
+            if (!ruc || !nombre) { errores.push({ fila: i + 2, error: 'ruc y nombre son obligatorios' }); continue; }
 
             try {
                 const datos = {
@@ -111,9 +113,11 @@ router.post('/rrll/importar', verifyToken, verifyRole('sistemas'), fu, async (re
                 if (result.lastErrorObject?.upserted) insertados++;
                 else actualizados++;
 
-                const contacto = result.value;
-                await importarDatos(ContactoRRLLDato, contacto._id, ruc, f);
-            } catch (err) { errores.push({ fila: i+2, error: err.message }); }
+                // FIX: buscar el contacto para asegurar _id correcto
+                const contacto = await ContactoRRLL.findOne({ ruc, nombre });
+                if (contacto) await importarDatos(ContactoRRLLDato, contacto._id, ruc, f);
+
+            } catch (err) { errores.push({ fila: i + 2, error: err.message }); }
         }
 
         res.json({ message: 'Contactos RRLL importados', insertados, actualizados, errores: errores.slice(0, 20) });
@@ -151,20 +155,22 @@ router.get('/rrll/:ruc', verifyToken, async (req, res) => {
         res.json(resultado);
     } catch (e) { res.status(500).json({ message: 'Error', error: e.message }); }
 });
-// POST - Agregar contacto autorizado individual
+
+// ── POST - Agregar contacto autorizado individual ─────────────────────────
 router.post('/autorizados/agregar', verifyToken, async (req, res) => {
     try {
         const { ruc, nombre, cargo, dni, telefonos, correos } = req.body;
         if (!ruc || !nombre) return res.status(400).json({ message: 'ruc y nombre son obligatorios' });
 
-        // Upsert contacto por ruc + nombre
-        const contacto = await ContactoAutorizado.findOneAndUpdate(
+        await ContactoAutorizado.findOneAndUpdate(
             { ruc, nombre },
             { $set: { cargo: cargo || null, dni: dni || null }, $setOnInsert: { ruc, nombre } },
             { upsert: true, new: true }
         );
 
-        // Guardar teléfonos
+        // FIX: buscar contacto para asegurar _id correcto
+        const contacto = await ContactoAutorizado.findOne({ ruc, nombre });
+
         if (telefonos?.length) {
             for (const val of telefonos) {
                 if (!val.trim()) continue;
@@ -176,7 +182,6 @@ router.post('/autorizados/agregar', verifyToken, async (req, res) => {
             }
         }
 
-        // Guardar correos
         if (correos?.length) {
             for (const val of correos) {
                 if (!val.trim()) continue;

@@ -29,7 +29,6 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const fin = fechaFin(fecha_hasta);
-        const filtroFecha = { $gte: inicio, $lte: fin };
 
         // Actividades de hoy
         const hoyInicio = new Date(); hoyInicio.setHours(0,0,0,0);
@@ -43,29 +42,32 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
             enviar_informacion: actHoy.filter(a => a.tipo === 'enviar_informacion').length,
         };
 
-        // Empresas en cartera desde empresas_v2
+        // Empresas en cartera
         const empresasEnCartera = await EmpresaV2.countDocuments({
             'asignacion.id_asesor': id_asesor,
             estado_base: 'asignada',
         });
 
-        // Fichas activas del asesor en el período
+        // Todas las fichas activas del asesor
         const fichas = await FichaGestion.find({
             'asesor.id_asesor': id_asesor,
             activa: true,
-            'fechas.fecha_ultimo_contacto': filtroFecha,
         });
 
-        // Interacciones de tipo interesado
-        const fichasConOpo = await FichaGestion.find({
-            'asesor.id_asesor': id_asesor,
-            activa: true,
-            'oportunidades.0': { $exists: true },
-        });
+        // Interacciones en el período seleccionado
+        const interaccionesEnPeriodo = fichas.flatMap(f =>
+            f.interacciones.filter(i =>
+                new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
+            )
+        );
 
-        const todasOportunidades = fichasConOpo.flatMap(f => f.oportunidades);
+        // Fichas con oportunidades (interesados)
+        const fichasConOpo = fichas.filter(f => f.oportunidades?.length > 0);
         const interesados = fichasConOpo.length;
         const clientesFunnel = interesados;
+
+        // Todas las oportunidades
+        const todasOportunidades = fichas.flatMap(f => f.oportunidades || []);
 
         // Ganadas en el período
         const ganadas = todasOportunidades.filter(o =>
@@ -101,8 +103,13 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
 
         const tasaEfectividad = empresasEnCartera > 0 ? Math.round((interesados / empresasEnCartera) * 100) : 0;
 
-        // Reuniones completadas
-        const reuniones = await Actividad.find({ asesor: id_asesor, tipo: 'reunion', estado: 'completado', fecha: filtroFecha });
+        // Reuniones completadas en el período
+        const reuniones = await Actividad.find({
+            asesor: id_asesor,
+            tipo: 'reunion',
+            estado: 'completado',
+            fecha: { $gte: inicio, $lte: fin }
+        });
         const reunionesPorDia = {};
         reuniones.forEach(r => {
             const dia = new Date(r.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
@@ -112,7 +119,16 @@ router.get('/asesor', verifyToken, verifyRole('asesor'), async (req, res) => {
 
         res.json({
             actividadesHoy,
-            tarjetas: { clientesFunnel, ganadas: ganadas.length, cfTotal: cfTotales.total, cfMovil: cfTotales.movil, cfFibra: cfTotales.fibra, cfFija: cfTotales.fija, cfCloud: cfTotales.cloud },
+            tarjetas: {
+                clientesFunnel,
+                ganadas: ganadas.length,
+                cfTotal: cfTotales.total,
+                cfMovil: cfTotales.movil,
+                cfFibra: cfTotales.fibra,
+                cfFija: cfTotales.fija,
+                cfCloud: cfTotales.cloud,
+                gestionesPeriodo: interaccionesEnPeriodo.length,
+            },
             kpis: { ventasPorProducto, tasaEfectividad, empresasEnCartera, interesados, funnelStages, reunionesChart },
         });
     } catch (error) {
@@ -127,7 +143,6 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const fin = fechaFin(fecha_hasta);
-        const filtroFecha = { $gte: inicio, $lte: fin };
 
         const asesores = await User.find({ rol_user: 'asesor', estado_user: 'activo' }).select('_id nombre_user');
 
@@ -144,13 +159,17 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
 
         // Interacciones en el período
         const interaccionesEnPeriodo = fichas.flatMap(f =>
-            f.interacciones.filter(i => new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin)
+            f.interacciones.filter(i =>
+                new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
+            )
         );
         const totalGestiones = interaccionesEnPeriodo.length;
-        const interesados = fichas.filter(f => f.oportunidades?.length > 0).length;
 
         // Oportunidades
         const todasOpos = fichas.flatMap(f => f.oportunidades || []);
+        const interesados = fichas.filter(f => f.oportunidades?.length > 0).length;
+
+        // Ganadas en el período
         const ganadas = todasOpos.filter(o =>
             o.estado === 'Negociada Aprobada' &&
             o.fecha_ganada &&
@@ -164,8 +183,11 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
         const rendimientoPorAsesor = await Promise.all(asesores.map(async (asesor) => {
             const fichasAsesor = fichas.filter(f => f.asesor?.id_asesor?.toString() === asesor._id.toString());
             const interAsesor = fichasAsesor.flatMap(f =>
-                f.interacciones.filter(i => new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin)
+                f.interacciones.filter(i =>
+                    new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
+                )
             ).length;
+            const intAsesor = fichasAsesor.filter(f => f.oportunidades?.length > 0).length;
             const oposAsesor = fichasAsesor.flatMap(f => f.oportunidades || []);
             const ganAsesor = oposAsesor.filter(o =>
                 o.estado === 'Negociada Aprobada' &&
@@ -177,7 +199,6 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
                 'asignacion.id_asesor': asesor._id,
                 estado_base: 'asignada',
             });
-            const intAsesor = fichasAsesor.filter(f => f.oportunidades?.length > 0).length;
             return {
                 id: asesor._id,
                 nombre: asesor.nombre_user,
@@ -202,7 +223,7 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
         const ventasPorProducto = { movil: 0, fibra: 0, cloud: 0, fija: 0 };
         ganadas.forEach(o => { const cat = CATEGORIA_CF[o.producto] || 'movil'; ventasPorProducto[cat]++; });
 
-        // Gestiones por tipo (interacciones)
+        // Gestiones por tipo en el período
         const gestionesPorTipo = {
             interesado:                  interaccionesEnPeriodo.filter(i => i.tipo === 'interesado').length,
             cliente_claro:               interaccionesEnPeriodo.filter(i => i.tipo === 'cliente_claro').length,

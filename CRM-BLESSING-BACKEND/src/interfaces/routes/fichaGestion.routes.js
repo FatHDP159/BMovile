@@ -169,4 +169,45 @@ router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('as
     }
 });
 
+// POST /arreglar-contactos — Copia contactos de gestiones a oportunidades (temporal)
+router.post('/arreglar-contactos', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const Gestion = require('../../domain/gestiones/gestiones.model.js');
+        const fichas = await FichaGestion.find({ 'oportunidades.0': { $exists: true } });
+        let actualizadas = 0;
+
+        for (const ficha of fichas) {
+            let modificada = false;
+            for (const opo of ficha.oportunidades) {
+                if (!opo.contacto?.nombre) {
+                    // Buscar gestión original de tipo interesado para este ruc+asesor
+                    const gestion = await Gestion.findOne({
+                        ruc: ficha.ruc,
+                        'asesor.id_asesor': ficha.asesor.id_asesor,
+                        tipo_tipificacion: 'interesado',
+                        'contacto.nombre': { $ne: null }
+                    }).sort({ createdAt: 1 });
+
+                    if (gestion?.contacto?.nombre) {
+                        opo.contacto = {
+                            nombre:   gestion.contacto.nombre   || null,
+                            telefono: gestion.contacto.telefono || null,
+                            dni:      gestion.contacto.dni      || null,
+                        };
+                        modificada = true;
+                    }
+                }
+            }
+            if (modificada) {
+                await ficha.save();
+                actualizadas++;
+            }
+        }
+
+        res.json({ message: `✅ Contactos actualizados en ${actualizadas} fichas` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
+
 module.exports = router;

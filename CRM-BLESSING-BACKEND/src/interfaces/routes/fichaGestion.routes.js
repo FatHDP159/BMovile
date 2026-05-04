@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const fichaGestionRepository = require('../../infrastructure/repositories/fichaGestion.repository.js');
+const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js'); // ← AGREGAR
 const Gestion = require('../../domain/gestiones/gestiones.model.js');
 const { verifyToken } = require('../../infrastructure/middlewares/auth.middleware');
 const { verifyRole } = require('../../infrastructure/middlewares/roles.middleware');

@@ -223,5 +223,47 @@ router.post('/arreglar-contactos', verifyToken, verifyRole('sistemas'), async (r
         res.status(500).json({ message: 'Error', error: error.message });
     }
 });
+// POST /arreglar-fechas — Corrige fechas de interacciones migradas
+router.post('/arreglar-fechas', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const fichas = await FichaGestion.find({ activa: true });
+        let actualizadas = 0;
+
+        for (const ficha of fichas) {
+            let modificada = false;
+            for (const inter of ficha.interacciones) {
+                // Solo corregir interacciones con fecha de hoy (migradas)
+                const fechaInter = new Date(inter.fecha);
+                const hoy = new Date();
+                const esHoy = fechaInter.toDateString() === hoy.toDateString();
+
+                if (esHoy) {
+                    // Buscar gestión original por ruc + asesor + tipo
+                    const gestion = await Gestion.findOne({
+                        ruc: ficha.ruc,
+                        'asesor.id_asesor': ficha.asesor.id_asesor,
+                        tipo_tipificacion: inter.tipo !== 'interesado' ? inter.tipo : 'interesado',
+                    }).sort({ createdAt: 1 });
+
+                    if (gestion?.fechas?.fecha_tipificacion) {
+                        inter.fecha = gestion.fechas.fecha_tipificacion;
+                        modificada = true;
+                    } else if (gestion?.createdAt) {
+                        inter.fecha = gestion.createdAt;
+                        modificada = true;
+                    }
+                }
+            }
+            if (modificada) {
+                await ficha.save();
+                actualizadas++;
+            }
+        }
+
+        res.json({ message: `✅ Fechas corregidas en ${actualizadas} fichas` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
 
 module.exports = router;

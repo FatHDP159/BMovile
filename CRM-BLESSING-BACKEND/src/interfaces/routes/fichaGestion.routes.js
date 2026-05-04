@@ -306,4 +306,59 @@ router.post('/arreglar-fechas-v2', verifyToken, verifyRole('sistemas'), async (r
         res.status(500).json({ message: 'Error', error: error.message });
     }
 });
+router.post('/reconstruir-interacciones', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const fichas = await FichaGestion.find({ activa: true });
+        let actualizadas = 0;
+        let totalInteracciones = 0;
+
+        for (const ficha of fichas) {
+            if (!ficha.asesor?.id_asesor) continue;
+
+            // Obtener todas las gestiones originales ordenadas por fecha
+            const gestiones = await Gestion.find({
+                ruc: ficha.ruc,
+                'asesor.id_asesor': ficha.asesor.id_asesor,
+            }).sort({ 'fechas.fecha_tipificacion': 1 });
+
+            if (gestiones.length === 0) continue;
+
+            // Reconstruir interacciones desde gestiones originales
+            const nuevasInteracciones = gestiones.map(g => ({
+                fecha: g.fechas?.fecha_tipificacion || g.createdAt,
+                tipo: g.tipo_tipificacion,
+                comentario: g.comentario || g.oportunidad?.comentario || null,
+                contacto: {
+                    nombre:   g.contacto?.nombre   || null,
+                    telefono: g.contacto?.telefono || null,
+                    dni:      g.contacto?.dni      || null,
+                },
+                agregado_por: {
+                    id:     g.asesor?.id_asesor,
+                    nombre: 'Migrado',
+                    rol:    'asesor',
+                },
+            }));
+
+            ficha.interacciones = nuevasInteracciones;
+
+            // Actualizar fecha_ultimo_contacto con la más reciente
+            const fechas = nuevasInteracciones.map(i => new Date(i.fecha)).filter(f => !isNaN(f));
+            if (fechas.length > 0) {
+                ficha.fechas.fecha_ultimo_contacto = new Date(Math.max(...fechas));
+                ficha.fechas.fecha_inicio = new Date(Math.min(...fechas));
+            }
+
+            await ficha.save();
+            actualizadas++;
+            totalInteracciones += nuevasInteracciones.length;
+        }
+
+        res.json({ 
+            message: `✅ Interacciones reconstruidas en ${actualizadas} fichas, ${totalInteracciones} interacciones totales` 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
 module.exports = router;

@@ -2,17 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../../infrastructure/middlewares/auth.middleware');
 const { verifyRole } = require('../../infrastructure/middlewares/roles.middleware');
-const Gestion = require('../../domain/gestiones/gestiones.model.js');
+const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js');
 const Actividad = require('../../domain/actividades/actividades.model.js');
 const Objetivo = require('../../domain/objetivos/objetivos.model.js');
 const User = require('../../domain/users/user.model.js');
 
 const calcDiasRango = (inicio, fin) => {
-    const diffMs = fin.setHours(23,59,59,999) - inicio.setHours(0,0,0,0);
-    return Math.max(1, Math.round(diffMs / 86400000));
+    return Math.max(1, Math.round((fin - inicio) / 86400000));
 };
 
-// Helper — fix fecha fin a 23:59:59
 const fechaFin = (fecha_hasta) => {
     if (!fecha_hasta) return new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
     const f = new Date(fecha_hasta);
@@ -27,8 +25,7 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const fin = fechaFin(fecha_hasta);
-        const filtroFecha = { $gte: inicio, $lte: fin };
-        const diasRango = calcDiasRango(inicio, fin);
+        const diasRango = calcDiasRango(new Date(inicio), new Date(fin));
 
         let asesores = await User.find({ rol_user: 'asesor', estado_user: 'activo' }).select('_id nombre_user');
         if (asesoresParam) {
@@ -36,21 +33,30 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
             asesores = asesores.filter(a => ids.includes(a._id.toString()));
         }
 
-        const gestiones = await Gestion.find({ 'fechas.fecha_tipificacion': filtroFecha });
-        const reuniones = await Actividad.find({ tipo: 'reunion', estado: 'completado', fecha: filtroFecha });
-
+        // Cargar todas las fichas activas
+        const fichas = await FichaGestion.find({ activa: true });
+        const reuniones = await Actividad.find({ tipo: 'reunion', estado: 'completado', fecha: { $gte: inicio, $lte: fin } });
         const objGlobal = await Objetivo.findOne({ tipo: 'global' });
         const objetivoDiario = objGlobal?.objetivo_diario || 0;
 
-        const totalTipificaciones = gestiones.length;
-        const totalOportunidades = gestiones.filter(g => g.tipo_tipificacion === 'interesado').length;
+        // Interacciones en el período
+        const interaccionesEnPeriodo = fichas.flatMap(f =>
+            f.interacciones.filter(i => new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin)
+        );
+
+        const totalTipificaciones = interaccionesEnPeriodo.length;
+        const totalOportunidades = fichas.filter(f => f.oportunidades?.length > 0).length;
         const totalCitas = reuniones.length;
         const conversionBase = totalTipificaciones > 0 ? Math.round((totalOportunidades / totalTipificaciones) * 100) : 0;
         const efectividadComercial = totalOportunidades > 0 ? Math.round((totalCitas / totalOportunidades) * 100) : 0;
 
+        // Tabla asesores
         const tablaAsesores = await Promise.all(asesores.map(async (asesor) => {
-            const gAsesor = gestiones.filter(g => g.asesor?.id_asesor?.toString() === asesor._id.toString());
-            const opAsesor = gAsesor.filter(g => g.tipo_tipificacion === 'interesado').length;
+            const fichasAsesor = fichas.filter(f => f.asesor?.id_asesor?.toString() === asesor._id.toString());
+            const interAsesor = fichasAsesor.flatMap(f =>
+                f.interacciones.filter(i => new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin)
+            ).length;
+            const opAsesor = fichasAsesor.filter(f => f.oportunidades?.length > 0).length;
             const citasAsesor = reuniones.filter(r => r.asesor?.toString() === asesor._id.toString()).length;
             const objetivoPeriodo = objetivoDiario * diasRango;
             const alcance = objetivoPeriodo > 0 ? Math.round((opAsesor / objetivoPeriodo) * 100) : 0;
@@ -58,7 +64,7 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
             return {
                 id: asesor._id,
                 nombre: asesor.nombre_user,
-                tipificaciones: gAsesor.length,
+                tipificaciones: interAsesor,
                 oportunidades: opAsesor,
                 citas: citasAsesor,
                 objetivo_periodo: objetivoPeriodo,
@@ -72,6 +78,7 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
             { etapa: 'Citas',          cantidad: totalCitas },
         ];
 
+        // Serie temporal
         const serieData = [];
         if (granularidad === 'diario') {
             const dias = Math.min(diasRango, 31);
@@ -79,11 +86,11 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
                 const dia = new Date(inicio);
                 dia.setDate(inicio.getDate() + i);
                 const diaFin = new Date(dia); diaFin.setHours(23,59,59,999);
-                const gDia = gestiones.filter(g => new Date(g.fechas?.fecha_tipificacion) >= dia && new Date(g.fechas?.fecha_tipificacion) <= diaFin);
+                const iDia = interaccionesEnPeriodo.filter(i => new Date(i.fecha) >= dia && new Date(i.fecha) <= diaFin);
                 serieData.push({
                     label: `${String(dia.getDate()).padStart(2,'0')}/${String(dia.getMonth()+1).padStart(2,'0')}`,
-                    tipificaciones: gDia.length,
-                    oportunidades: gDia.filter(g => g.tipo_tipificacion === 'interesado').length,
+                    tipificaciones: iDia.length,
+                    oportunidades: iDia.filter(i => i.tipo === 'interesado').length,
                 });
             }
         } else if (granularidad === 'semanal') {
@@ -92,22 +99,22 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
                 const semanaFin = new Date(semanaInicio);
                 semanaFin.setDate(semanaInicio.getDate() + 6);
                 semanaFin.setHours(23,59,59,999);
-                const gSem = gestiones.filter(g => new Date(g.fechas?.fecha_tipificacion) >= semanaInicio && new Date(g.fechas?.fecha_tipificacion) <= semanaFin);
+                const iSem = interaccionesEnPeriodo.filter(i => new Date(i.fecha) >= semanaInicio && new Date(i.fecha) <= semanaFin);
                 serieData.push({
                     label: `${String(semanaInicio.getDate()).padStart(2,'0')}/${String(semanaInicio.getMonth()+1).padStart(2,'0')}`,
-                    tipificaciones: gSem.length,
-                    oportunidades: gSem.filter(g => g.tipo_tipificacion === 'interesado').length,
+                    tipificaciones: iSem.length,
+                    oportunidades: iSem.filter(i => i.tipo === 'interesado').length,
                 });
                 semanaInicio.setDate(semanaInicio.getDate() + 7);
             }
         } else {
             const meses = {};
-            gestiones.forEach(g => {
-                const d = new Date(g.fechas?.fecha_tipificacion);
+            interaccionesEnPeriodo.forEach(i => {
+                const d = new Date(i.fecha);
                 const key = `${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
                 if (!meses[key]) meses[key] = { label: key, tipificaciones: 0, oportunidades: 0 };
                 meses[key].tipificaciones++;
-                if (g.tipo_tipificacion === 'interesado') meses[key].oportunidades++;
+                if (i.tipo === 'interesado') meses[key].oportunidades++;
             });
             serieData.push(...Object.values(meses));
         }
@@ -120,7 +127,6 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
             diasRango,
             asesores,
         });
-
     } catch (error) {
         res.status(500).json({ message: 'Error al cargar dashboard sistemas', error: error.message });
     }

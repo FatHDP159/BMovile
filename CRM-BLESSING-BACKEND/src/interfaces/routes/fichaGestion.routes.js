@@ -229,20 +229,20 @@ router.post('/arreglar-fechas', verifyToken, verifyRole('sistemas'), async (req,
         const fichas = await FichaGestion.find({ activa: true });
         let actualizadas = 0;
 
+        const fechaMigracionInicio = new Date('2025-05-01T00:00:00.000Z');
+        const fechaMigracionFin = new Date('2025-05-03T23:59:59.999Z');
+
         for (const ficha of fichas) {
             let modificada = false;
             for (const inter of ficha.interacciones) {
-                // Solo corregir interacciones con fecha de hoy (migradas)
                 const fechaInter = new Date(inter.fecha);
-                const hoy = new Date();
-                const esHoy = fechaInter.toDateString() === hoy.toDateString();
+                const esMigrada = fechaInter >= fechaMigracionInicio && fechaInter <= fechaMigracionFin;
 
-                if (esHoy) {
-                    // Buscar gestión original por ruc + asesor + tipo
+                if (esMigrada) {
                     const gestion = await Gestion.findOne({
                         ruc: ficha.ruc,
                         'asesor.id_asesor': ficha.asesor.id_asesor,
-                        tipo_tipificacion: inter.tipo !== 'interesado' ? inter.tipo : 'interesado',
+                        tipo_tipificacion: inter.tipo,
                     }).sort({ createdAt: 1 });
 
                     if (gestion?.fechas?.fecha_tipificacion) {

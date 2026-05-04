@@ -180,36 +180,46 @@ router.get('/supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), asy
         const tasaEfectividad = empresasEnCartera > 0 ? Math.round((interesados / empresasEnCartera) * 100) : 0;
 
         // Rendimiento por asesor
-        const rendimientoPorAsesor = await Promise.all(asesores.map(async (asesor) => {
-            const fichasAsesor = fichas.filter(f => f.asesor?.id_asesor?.toString() === asesor._id.toString());
-            const interAsesor = fichasAsesor.flatMap(f =>
-                f.interacciones.filter(i =>
-                    new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
-                )
-            ).length;
-            const intAsesor = fichasAsesor.filter(f => f.oportunidades?.length > 0).length;
-            const oposAsesor = fichasAsesor.flatMap(f => f.oportunidades || []);
-            const ganAsesor = oposAsesor.filter(o =>
-                o.estado === 'Negociada Aprobada' &&
-                o.fecha_ganada &&
-                new Date(o.fecha_ganada) >= inicio &&
-                new Date(o.fecha_ganada) <= fin
-            );
-            const enCarteraAsesor = await EmpresaV2.countDocuments({
-                'asignacion.id_asesor': asesor._id,
-                estado_base: 'asignada',
-            });
-            return {
-                id: asesor._id,
-                nombre: asesor.nombre_user,
-                enCartera: enCarteraAsesor,
-                gestiones: interAsesor,
-                interesados: intAsesor,
-                ganadas: ganAsesor.length,
-                cf: ganAsesor.reduce((acc, o) => acc + (o.cargo_fijo || 0), 0),
-                efectividad: enCarteraAsesor > 0 ? Math.round((intAsesor / enCarteraAsesor) * 100) : 0,
-            };
-        }));
+const rendimientoPorAsesor = await Promise.all(asesores.map(async (asesor) => {
+    const fichasAsesor = fichas.filter(f => f.asesor?.id_asesor?.toString() === asesor._id.toString());
+    
+    const interAsesor = fichasAsesor.flatMap(f =>
+        f.interacciones.filter(i =>
+            new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
+        )
+    ).length;
+
+    // ← CAMBIO: oportunidades creadas en el período
+    const intAsesor = fichasAsesor.reduce((acc, f) => {
+        const oposEnPeriodo = (f.oportunidades || []).filter(o =>
+            new Date(o.fecha_creacion) >= inicio && new Date(o.fecha_creacion) <= fin
+        );
+        return acc + (oposEnPeriodo.length > 0 ? 1 : 0);
+    }, 0);
+
+    const ganAsesor = fichasAsesor.flatMap(f => f.oportunidades || []).filter(o =>
+        o.estado === 'Negociada Aprobada' &&
+        o.fecha_ganada &&
+        new Date(o.fecha_ganada) >= inicio &&
+        new Date(o.fecha_ganada) <= fin
+    );
+
+    const enCarteraAsesor = await EmpresaV2.countDocuments({
+        'asignacion.id_asesor': asesor._id,
+        estado_base: 'asignada',
+    });
+
+    return {
+        id: asesor._id,
+        nombre: asesor.nombre_user,
+        enCartera: enCarteraAsesor,
+        gestiones: interAsesor,
+        interesados: intAsesor,
+        ganadas: ganAsesor.length,
+        cf: ganAsesor.reduce((acc, o) => acc + (o.cargo_fijo || 0), 0),
+        efectividad: enCarteraAsesor > 0 ? Math.round((intAsesor / enCarteraAsesor) * 100) : 0,
+    };
+}));
 
         // Funnel
         const funnelStages = [

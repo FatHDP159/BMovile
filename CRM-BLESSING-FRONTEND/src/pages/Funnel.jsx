@@ -2,32 +2,32 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faFunnelDollar, faChevronLeft, faChevronRight, faPen,
-    faHistory, faPlus, faBullseye
+    faHistory, faPlus, faBullseye, faPhone, faIdCard, faBriefcase
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Usuarios.css';
 import './Funnel.css';
 
 const ESTADOS = [
-    { key: 'Identificada',        label: 'Identificada',        color: 'estado-identificada' },
+    { key: 'Identificada', label: 'Identificada', color: 'estado-identificada' },
     { key: 'Propuesta Entregada', label: 'Propuesta Entregada', color: 'estado-propuesta' },
-    { key: 'Negociación',         label: 'Negociación',         color: 'estado-negociacion' },
-    { key: 'Negociada Aprobada',  label: 'Negociada Aprobada',  color: 'estado-aprobada' },
+    { key: 'Negociación', label: 'Negociación', color: 'estado-negociacion' },
+    { key: 'Negociada Aprobada', label: 'Negociada Aprobada', color: 'estado-aprobada' },
     { key: 'Negociada Rechazada', label: 'Negociada Rechazada', color: 'estado-rechazada' },
 ];
 
 const TABS_FUNNEL = [
-    { key: 'Identificada',        label: 'Identificada',    num: 1 },
+    { key: 'Identificada', label: 'Identificada', num: 1 },
     { key: 'Propuesta Entregada', label: 'Prop. Entregada', num: 2 },
-    { key: 'Negociación',         label: 'Negociación',     num: 3 },
-    { key: 'Cerrada',             label: 'Cerrada',         num: 4 },
+    { key: 'Negociación', label: 'Negociación', num: 3 },
+    { key: 'Cerrada', label: 'Cerrada', num: 4 },
 ];
 
 const ESTADOS_OPO_COLORS = {
-    'Identificada':        { bg: '#ede7f6', text: '#4527a0' },
+    'Identificada': { bg: '#ede7f6', text: '#4527a0' },
     'Propuesta Entregada': { bg: '#fff8e1', text: '#f57f17' },
-    'Negociación':         { bg: '#e8f5e9', text: '#2e7d32' },
-    'Negociada Aprobada':  { bg: '#e3f2fd', text: '#1565c0' },
+    'Negociación': { bg: '#e8f5e9', text: '#2e7d32' },
+    'Negociada Aprobada': { bg: '#e3f2fd', text: '#1565c0' },
     'Negociada Rechazada': { bg: '#fce8e6', text: '#c62828' },
 };
 
@@ -73,9 +73,12 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
     const [tabActivo, setTabActivo] = useState(tabInicial);
     const [resultadoCierre, setResultadoCierre] = useState(
         oportunidad.estado === 'Negociada Aprobada' ? 'Aprobada' :
-        oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
+            oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
     );
     const [form, setForm] = useState({
+        contacto_nombre: oportunidad.contacto?.nombre || '',
+        contacto_telefono: oportunidad.contacto?.telefono || '',
+        contacto_dni: oportunidad.contacto?.dni || '',
         titulo: oportunidad.titulo || '',
         producto: oportunidad.producto || '',
         cantidad: oportunidad.cantidad || '',
@@ -99,6 +102,11 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
         setLoading(true);
         try {
             await api.put(`/ficha-gestion/${ficha._id}/oportunidades/${oportunidad._id}`, {
+                contacto: {
+                    nombre: form.contacto_nombre || null,
+                    telefono: form.contacto_telefono || null,
+                    dni: form.contacto_dni || null,
+                },
                 titulo: form.titulo, producto: form.producto,
                 cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
                 sustento: form.sustento, comentario: form.comentario || null,
@@ -139,6 +147,23 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
                 )}
 
                 <div className="funnel-form">
+                    {/* Contacto */}
+                    <p style={{ fontSize: 12, fontWeight: 600, color: '#1D2558', marginBottom: 8 }}>Datos de contacto</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 4 }}>
+                        <div className="form-field">
+                            <label><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />Nombre</label>
+                            <input className="form-input" value={form.contacto_nombre} onChange={e => setForm(f => ({ ...f, contacto_nombre: e.target.value }))} placeholder="Nombre del contacto" />
+                        </div>
+                        <div className="form-field">
+                            <label><FontAwesomeIcon icon={faPhone} style={{ marginRight: 4 }} />Teléfono</label>
+                            <input className="form-input" value={form.contacto_telefono} onChange={e => setForm(f => ({ ...f, contacto_telefono: e.target.value }))} placeholder="Ej: 987654321" />
+                        </div>
+                        <div className="form-field">
+                            <label><FontAwesomeIcon icon={faIdCard} style={{ marginRight: 4 }} />DNI</label>
+                            <input className="form-input" value={form.contacto_dni} onChange={e => setForm(f => ({ ...f, contacto_dni: e.target.value }))} placeholder="Ej: 12345678" />
+                        </div>
+                    </div>
+
                     <div className="form-field"><label>Título</label>
                         <input className="form-input" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} />
                     </div>
@@ -193,7 +218,12 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
 
 // ── Modal Nueva Oportunidad ───────────────────────────────────────────────────
 const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
-    const [form, setForm] = useState({ titulo: '', producto: '', cantidad: '', cargo_fijo: '', fecha_cierre_esperada: '', sustento: false, comentario: '', entel: '', claro: '', movistar: '', otros: '', total: '' });
+    const [form, setForm] = useState({
+        contacto_nombre: '', contacto_telefono: '', contacto_dni: '',
+        titulo: '', producto: '', cantidad: '', cargo_fijo: '',
+        fecha_cierre_esperada: '', sustento: false, comentario: '',
+        entel: '', claro: '', movistar: '', otros: '', total: ''
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -202,6 +232,11 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
         setLoading(true);
         try {
             await api.post(`/ficha-gestion/${ficha._id}/oportunidades`, {
+                contacto: {
+                    nombre: form.contacto_nombre || null,
+                    telefono: form.contacto_telefono || null,
+                    dni: form.contacto_dni || null,
+                },
                 titulo: form.titulo, producto: form.producto,
                 cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
                 fecha_cierre_esperada: form.fecha_cierre_esperada || null,
@@ -218,6 +253,23 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
             <div className="modal" style={{ width: '90vw', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
                 <h2><FontAwesomeIcon icon={faPlus} style={{ marginRight: 8 }} />Nueva Oportunidad — {ficha.razon_social}</h2>
                 {error && <p style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{error}</p>}
+
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#1D2558', marginBottom: 8 }}>Datos de contacto</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 4 }}>
+                    <div className="form-field">
+                        <label><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />Nombre</label>
+                        <input className="form-input" value={form.contacto_nombre} onChange={e => setForm(f => ({ ...f, contacto_nombre: e.target.value }))} placeholder="Nombre del contacto" />
+                    </div>
+                    <div className="form-field">
+                        <label><FontAwesomeIcon icon={faPhone} style={{ marginRight: 4 }} />Teléfono</label>
+                        <input className="form-input" value={form.contacto_telefono} onChange={e => setForm(f => ({ ...f, contacto_telefono: e.target.value }))} placeholder="Ej: 987654321" />
+                    </div>
+                    <div className="form-field">
+                        <label><FontAwesomeIcon icon={faIdCard} style={{ marginRight: 4 }} />DNI</label>
+                        <input className="form-input" value={form.contacto_dni} onChange={e => setForm(f => ({ ...f, contacto_dni: e.target.value }))} placeholder="Ej: 12345678" />
+                    </div>
+                </div>
+
                 <div className="form-field"><label>Título</label>
                     <input className="form-input" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ej: Fibra 10 líneas" />
                 </div>
@@ -294,7 +346,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
     return (
         <div className="modal-overlay">
             <div className="modal" style={{ width: '90vw', maxWidth: 640, maxHeight: '92vh', overflowY: 'auto' }}>
-                {/* Header */}
                 <div className="funnel-modal-header">
                     <div>
                         <div className="funnel-modal-ruc">{ficha.ruc}</div>
@@ -309,7 +360,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                     <EstadoBadge estado={opoMasAvanzada()?.estado} />
                 </div>
 
-                {/* Botones superiores */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
                     <button className="btn-secondary" style={{ fontSize: 12 }} onClick={() => setShowHistorial(v => !v)}>
                         <FontAwesomeIcon icon={faHistory} style={{ marginRight: 6 }} />
@@ -320,7 +370,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                     </button>
                 </div>
 
-                {/* Historial de oportunidades */}
                 {showHistorial && (
                     <div style={{ marginBottom: 20, background: '#f9f9f9', borderRadius: 8, padding: 16 }}>
                         <h3 style={{ fontSize: 13, marginBottom: 12, color: '#1a1a2e' }}>Historial de Oportunidades</h3>
@@ -334,6 +383,14 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                                             <div style={{ fontWeight: 600, fontSize: 13 }}>{opo.titulo || opo.producto || `Oportunidad ${i + 1}`}</div>
                                             <EstadoOpoBadge estado={opo.estado} />
                                         </div>
+                                        {/* Contacto en historial */}
+                                        {opo.contacto?.nombre && (
+                                            <div style={{ fontSize: 12, color: '#555', marginBottom: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                                <span><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />{opo.contacto.nombre}</span>
+                                                {opo.contacto.telefono && <span><FontAwesomeIcon icon={faPhone} style={{ marginRight: 4 }} />{opo.contacto.telefono}</span>}
+                                                {opo.contacto.dni && <span><FontAwesomeIcon icon={faIdCard} style={{ marginRight: 4 }} />{opo.contacto.dni}</span>}
+                                            </div>
+                                        )}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 12, color: '#555' }}>
                                             <div><span style={{ color: '#888' }}>Producto:</span> {opo.producto || '—'}</div>
                                             <div><span style={{ color: '#888' }}>Cantidad:</span> {opo.cantidad || 0}</div>
@@ -352,7 +409,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                     </div>
                 )}
 
-                {/* Oportunidades activas con btn Gestionar */}
                 <h3 style={{ fontSize: 13, marginBottom: 10, color: '#1a1a2e' }}>
                     Oportunidades activas ({ficha.oportunidades?.filter(o => o.estado !== 'Negociada Aprobada' && o.estado !== 'Negociada Rechazada').length || 0})
                 </h3>
@@ -371,6 +427,14 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                                         <FontAwesomeIcon icon={faPen} /> Gestionar
                                     </button>
                                 </div>
+                                {/* Contacto en oportunidad activa */}
+                                {opo.contacto?.nombre && (
+                                    <div style={{ fontSize: 12, color: '#555', marginBottom: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                        <span><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />{opo.contacto.nombre}</span>
+                                        {opo.contacto.telefono && <span><FontAwesomeIcon icon={faPhone} style={{ marginRight: 4 }} />{opo.contacto.telefono}</span>}
+                                        {opo.contacto.dni && <span><FontAwesomeIcon icon={faIdCard} style={{ marginRight: 4 }} />{opo.contacto.dni}</span>}
+                                    </div>
+                                )}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 12, color: '#555' }}>
                                     <div><span style={{ color: '#888' }}>Producto:</span> {opo.producto || '—'}</div>
                                     <div><span style={{ color: '#888' }}>Cantidad:</span> {opo.cantidad || 0}</div>
@@ -387,7 +451,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                     <button className="btn-secondary" onClick={onClose}>Cerrar</button>
                 </div>
 
-                {/* Sub-modales */}
                 {modalGestionarOpo && (
                     <ModalGestionarOpo
                         ficha={ficha}
@@ -420,8 +483,6 @@ const Funnel = ({ esSupervisor = false }) => {
     const [segmento, setSegmento] = useState('');
     const [lineasMin, setLineasMin] = useState('');
     const [lineasMax, setLineasMax] = useState('');
-    const [fechaDesde, setFechaDesde] = useState('');
-    const [fechaHasta, setFechaHasta] = useState('');
     const [modalFicha, setModalFicha] = useState(null);
     const [asesores, setAsesores] = useState([]);
     const [filtroAsesor, setFiltroAsesor] = useState('');
@@ -456,7 +517,6 @@ const Funnel = ({ esSupervisor = false }) => {
 
     const toggleEstado = (key) => setEstadosSel(prev => prev.includes(key) ? prev.filter(e => e !== key) : [...prev, key]);
 
-    // Oportunidad más avanzada de la ficha
     const opoMasAvanzada = (ficha) => {
         if (!ficha.oportunidades?.length) return null;
         const orden = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
@@ -508,62 +568,62 @@ const Funnel = ({ esSupervisor = false }) => {
             <div className="table-container">
                 {loading ? <p style={{ padding: 20 }}>Cargando...</p>
                     : fichas.length === 0 ? <p style={{ padding: 20, color: '#999' }}>No se encontraron oportunidades.</p>
-                    : (
-                        <>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Último contacto</th>
-                                        <th>RUC</th>
-                                        <th>Razón Social</th>
-                                        {esSupervisor && <th>Asesor</th>}
-                                        <th>Segmento</th>
-                                        <th>Líneas</th>
-                                        <th>Días</th>
-                                        <th>Estado oportunidad</th>
-                                        <th>Oportunidades</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {fichas.map(f => {
-                                        const opo = opoMasAvanzada(f);
-                                        return (
-                                            <tr key={f._id}>
-                                                <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
-                                                <td style={{ fontWeight: 600, color: '#3949ab' }}>{f.ruc}</td>
-                                                <td>{f.razon_social}</td>
-                                                {esSupervisor && <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>}
-                                                <td>{f.segmento || '—'}</td>
-                                                <td>{f.total_lineas || '—'}</td>
-                                                <td><DiasCell fecha={f.fechas?.fecha_ultimo_contacto} /></td>
-                                                <td><EstadoBadge estado={opo?.estado} /></td>
-                                                <td>
-                                                    <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
-                                                        {f.oportunidades?.length || 0}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
-                                                        <FontAwesomeIcon icon={faPen} /> Editar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            {totalPages > 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
-                                    <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} empresas</span>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
-                                        <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
+                        : (
+                            <>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Último contacto</th>
+                                            <th>RUC</th>
+                                            <th>Razón Social</th>
+                                            {esSupervisor && <th>Asesor</th>}
+                                            <th>Segmento</th>
+                                            <th>Líneas</th>
+                                            <th>Días</th>
+                                            <th>Estado oportunidad</th>
+                                            <th>Oportunidades</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {fichas.map(f => {
+                                            const opo = opoMasAvanzada(f);
+                                            return (
+                                                <tr key={f._id}>
+                                                    <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
+                                                    <td style={{ fontWeight: 600, color: '#3949ab' }}>{f.ruc}</td>
+                                                    <td>{f.razon_social}</td>
+                                                    {esSupervisor && <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>}
+                                                    <td>{f.segmento || '—'}</td>
+                                                    <td>{f.total_lineas || '—'}</td>
+                                                    <td><DiasCell fecha={f.fechas?.fecha_ultimo_contacto} /></td>
+                                                    <td><EstadoBadge estado={opo?.estado} /></td>
+                                                    <td>
+                                                        <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+                                                            {f.oportunidades?.length || 0}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
+                                                            <FontAwesomeIcon icon={faPen} /> Editar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
+                                        <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} empresas</span>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
+                                            <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                            </>
+                        )}
             </div>
 
             {modalFicha && (

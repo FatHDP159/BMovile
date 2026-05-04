@@ -41,6 +41,7 @@ const oportunidadSchema = new mongoose.Schema({
                'Negociada Aprobada', 'Negociada Rechazada'],
         default: 'Identificada',
     },
+    contacto:              { type: contactoSchema, default: {} },  // ← nuevo
     sustento:              { type: Boolean, default: false },
     comentario:            { type: String, default: null },
     fecha_creacion:        { type: Date, default: Date.now },

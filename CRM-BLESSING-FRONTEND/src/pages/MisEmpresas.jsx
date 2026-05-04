@@ -19,28 +19,28 @@ const fmt = (fecha) => {
 const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
 
 const TIPIFICACIONES = [
-    { key: 'interesado',                  label: 'Cliente Interesado' },
-    { key: 'cliente_claro',               label: 'Cliente Claro' },
-    { key: 'sin_contacto',                label: 'Sin Contacto' },
-    { key: 'con_deuda',                   label: 'Cliente con Deuda' },
-    { key: 'no_contesta',                 label: 'No Contesta' },
-    { key: 'cliente_no_interesado',       label: 'Cliente No Interesado' },
+    { key: 'interesado', label: 'Cliente Interesado' },
+    { key: 'cliente_claro', label: 'Cliente Claro' },
+    { key: 'sin_contacto', label: 'Sin Contacto' },
+    { key: 'con_deuda', label: 'Cliente con Deuda' },
+    { key: 'no_contesta', label: 'No Contesta' },
+    { key: 'cliente_no_interesado', label: 'Cliente No Interesado' },
     { key: 'empresa_con_sustento_valido', label: 'Empresa Con Sustento Válido' },
 ];
 
 const ESTADOS_OPO = [
-    { key: 'Identificada',        color: '#ede7f6', text: '#4527a0' },
+    { key: 'Identificada', color: '#ede7f6', text: '#4527a0' },
     { key: 'Propuesta Entregada', color: '#fff8e1', text: '#f57f17' },
-    { key: 'Negociación',         color: '#e8f5e9', text: '#2e7d32' },
-    { key: 'Negociada Aprobada',  color: '#e3f2fd', text: '#1565c0' },
+    { key: 'Negociación', color: '#e8f5e9', text: '#2e7d32' },
+    { key: 'Negociada Aprobada', color: '#e3f2fd', text: '#1565c0' },
     { key: 'Negociada Rechazada', color: '#fce8e6', text: '#c62828' },
 ];
 
 const TABS_FUNNEL = [
-    { key: 'Identificada',        label: 'Identificada',    num: 1 },
+    { key: 'Identificada', label: 'Identificada', num: 1 },
     { key: 'Propuesta Entregada', label: 'Prop. Entregada', num: 2 },
-    { key: 'Negociación',         label: 'Negociación',     num: 3 },
-    { key: 'Cerrada',             label: 'Cerrada',         num: 4 },
+    { key: 'Negociación', label: 'Negociación', num: 3 },
+    { key: 'Cerrada', label: 'Cerrada', num: 4 },
 ];
 
 const estadoATab = (estado) => {
@@ -172,7 +172,7 @@ const ModalGestionarOportunidad = ({ ficha, oportunidad, onClose, onGuardado }) 
     const [tabActivo, setTabActivo] = useState(tabInicial);
     const [resultadoCierre, setResultadoCierre] = useState(
         oportunidad.estado === 'Negociada Aprobada' ? 'Aprobada' :
-        oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
+            oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
     );
     const [form, setForm] = useState({
         titulo: oportunidad.titulo || '',
@@ -434,6 +434,11 @@ const ModalTipificar = ({ empresa, ficha, onClose, onGuardado }) => {
                     cargo_fijo: Number(form.cargo_fijo),
                     fecha_cierre_esperada: form.fecha_cierre_esperada || null,
                     comentario: form.comentario.trim() || null,
+                    contacto: {                        // ← AGREGAR
+                        nombre: form.contacto_nombre || null,
+                        telefono: form.contacto_telefono || null,
+                        dni: form.contacto_dni || null,
+                    },
                     operadores: {
                         entel: Number(form.entel) || 0, claro: Number(form.claro) || 0,
                         movistar: Number(form.movistar) || 0, otros: Number(form.otros) || 0,
@@ -776,7 +781,7 @@ const MisEmpresas = () => {
                     const r = await api.get(`/ficha-gestion/historial/${emp.ruc}`);
                     const fichaActiva = r.data.find(f => f.activa);
                     if (fichaActiva) fichasMap[emp.ruc] = fichaActiva;
-                } catch {}
+                } catch { }
             }));
             setFichas(fichasMap);
         } catch (err) { console.error(err); }
@@ -788,7 +793,7 @@ const MisEmpresas = () => {
             const r = await api.get(`/ficha-gestion/historial/${ruc}`);
             const fichaActiva = r.data.find(f => f.activa);
             setFichas(prev => ({ ...prev, [ruc]: fichaActiva || null }));
-        } catch {}
+        } catch { }
     };
 
     useEffect(() => {

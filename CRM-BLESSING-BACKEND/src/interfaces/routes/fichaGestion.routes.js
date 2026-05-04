@@ -269,10 +269,6 @@ router.post('/arreglar-fechas-v2', verifyToken, verifyRole('sistemas'), async (r
         let actualizadas = 0;
         let totalInteracciones = 0;
 
-        // Ventana exacta de la migración ±1 hora
-        const migracionInicio = new Date('2026-05-02T06:00:00.000Z');
-        const migracionFin    = new Date('2026-05-02T09:00:00.000Z');
-
         for (const ficha of fichas) {
             let modificada = false;
 
@@ -287,15 +283,12 @@ router.post('/arreglar-fechas-v2', verifyToken, verifyRole('sistemas'), async (r
                 const inter = ficha.interacciones[i];
                 const fechaInter = new Date(inter.fecha);
 
-                // Solo corregir las que tienen fecha en la ventana de migración
-                if (fechaInter >= migracionInicio && fechaInter <= migracionFin) {
+                // Corregir si la fecha es mayo 2026 (migración)
+                if (fechaInter.getFullYear() === 2026 && fechaInter.getMonth() === 4) {
                     const gestion = gestiones[i];
-                    if (gestion?.fechas?.fecha_tipificacion) {
-                        ficha.interacciones[i].fecha = gestion.fechas.fecha_tipificacion;
-                        modificada = true;
-                        totalInteracciones++;
-                    } else if (gestion?.createdAt) {
-                        ficha.interacciones[i].fecha = gestion.createdAt;
+                    const fechaReal = gestion?.fechas?.fecha_tipificacion || gestion?.createdAt;
+                    if (fechaReal) {
+                        ficha.interacciones[i].fecha = fechaReal;
                         modificada = true;
                         totalInteracciones++;
                     }

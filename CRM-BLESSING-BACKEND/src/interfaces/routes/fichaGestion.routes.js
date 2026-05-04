@@ -228,42 +228,38 @@ router.post('/arreglar-fechas', verifyToken, verifyRole('sistemas'), async (req,
     try {
         const fichas = await FichaGestion.find({ activa: true });
         let actualizadas = 0;
-
-        const fechaMigracionInicio = new Date('2025-05-01T00:00:00.000Z');
-        const fechaMigracionFin = new Date('2025-05-03T23:59:59.999Z');
+        let totalInteracciones = 0;
 
         for (const ficha of fichas) {
             let modificada = false;
-            for (const inter of ficha.interacciones) {
-                const fechaInter = new Date(inter.fecha);
-                const esMigrada = fechaInter >= fechaMigracionInicio && fechaInter <= fechaMigracionFin;
 
-                if (esMigrada) {
-                    const gestion = await Gestion.findOne({
-                        ruc: ficha.ruc,
-                        'asesor.id_asesor': ficha.asesor.id_asesor,
-                        tipo_tipificacion: inter.tipo,
-                    }).sort({ createdAt: 1 });
+            // Obtener todas las gestiones originales de este ruc+asesor ordenadas por fecha
+            const gestiones = await Gestion.find({
+                ruc: ficha.ruc,
+                'asesor.id_asesor': ficha.asesor.id_asesor,
+            }).sort({ createdAt: 1 });
 
-                    if (gestion?.fechas?.fecha_tipificacion) {
-                        inter.fecha = gestion.fechas.fecha_tipificacion;
-                        modificada = true;
-                    } else if (gestion?.createdAt) {
-                        inter.fecha = gestion.createdAt;
-                        modificada = true;
-                    }
+            if (gestiones.length === 0) continue;
+
+            for (let i = 0; i < ficha.interacciones.length; i++) {
+                const inter = ficha.interacciones[i];
+                const gestion = gestiones[i]; // misma posición
+                if (gestion?.fechas?.fecha_tipificacion) {
+                    ficha.interacciones[i].fecha = gestion.fechas.fecha_tipificacion;
+                    modificada = true;
+                    totalInteracciones++;
                 }
             }
+
             if (modificada) {
                 await ficha.save();
                 actualizadas++;
             }
         }
 
-        res.json({ message: `✅ Fechas corregidas en ${actualizadas} fichas` });
+        res.json({ message: `✅ Fechas corregidas en ${actualizadas} fichas, ${totalInteracciones} interacciones` });
     } catch (error) {
         res.status(500).json({ message: 'Error', error: error.message });
     }
 });
-
 module.exports = router;

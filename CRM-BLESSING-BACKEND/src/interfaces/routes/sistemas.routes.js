@@ -8,7 +8,7 @@ const Objetivo = require('../../domain/objetivos/objetivos.model.js');
 const User = require('../../domain/users/user.model.js');
 
 const calcDiasRango = (inicio, fin) => {
-    return Math.max(1, Math.round((fin - inicio) / 86400000));
+    return Math.max(1, Math.round((new Date(fin) - new Date(inicio)) / 86400000));
 };
 
 const fechaFin = (fecha_hasta) => {
@@ -25,7 +25,7 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
 
         const inicio = fecha_desde ? new Date(fecha_desde) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const fin = fechaFin(fecha_hasta);
-        const diasRango = calcDiasRango(new Date(inicio), new Date(fin));
+        const diasRango = calcDiasRango(inicio, fin);
 
         let asesores = await User.find({ rol_user: 'asesor', estado_user: 'activo' }).select('_id nombre_user');
         if (asesoresParam) {
@@ -41,11 +41,20 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
 
         // Interacciones en el período
         const interaccionesEnPeriodo = fichas.flatMap(f =>
-            f.interacciones.filter(i => new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin)
+            f.interacciones.filter(i =>
+                new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
+            )
         );
-
         const totalTipificaciones = interaccionesEnPeriodo.length;
-        const totalOportunidades = fichas.filter(f => f.oportunidades?.length > 0).length;
+
+        // Oportunidades creadas en el período (1 por ficha que tenga al menos 1 oportunidad en el período)
+        const totalOportunidades = fichas.reduce((acc, f) => {
+            const oposEnPeriodo = (f.oportunidades || []).filter(o =>
+                new Date(o.fecha_creacion) >= inicio && new Date(o.fecha_creacion) <= fin
+            );
+            return acc + (oposEnPeriodo.length > 0 ? 1 : 0);
+        }, 0);
+
         const totalCitas = reuniones.length;
         const conversionBase = totalTipificaciones > 0 ? Math.round((totalOportunidades / totalTipificaciones) * 100) : 0;
         const efectividadComercial = totalOportunidades > 0 ? Math.round((totalCitas / totalOportunidades) * 100) : 0;
@@ -53,10 +62,22 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
         // Tabla asesores
         const tablaAsesores = await Promise.all(asesores.map(async (asesor) => {
             const fichasAsesor = fichas.filter(f => f.asesor?.id_asesor?.toString() === asesor._id.toString());
+
+            // Interacciones del asesor en el período
             const interAsesor = fichasAsesor.flatMap(f =>
-                f.interacciones.filter(i => new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin)
+                f.interacciones.filter(i =>
+                    new Date(i.fecha) >= inicio && new Date(i.fecha) <= fin
+                )
             ).length;
-            const opAsesor = fichasAsesor.filter(f => f.oportunidades?.length > 0).length;
+
+            // Oportunidades del asesor creadas en el período
+            const opAsesor = fichasAsesor.reduce((acc, f) => {
+                const oposEnPeriodo = (f.oportunidades || []).filter(o =>
+                    new Date(o.fecha_creacion) >= inicio && new Date(o.fecha_creacion) <= fin
+                );
+                return acc + (oposEnPeriodo.length > 0 ? 1 : 0);
+            }, 0);
+
             const citasAsesor = reuniones.filter(r => r.asesor?.toString() === asesor._id.toString()).length;
             const objetivoPeriodo = objetivoDiario * diasRango;
             const alcance = objetivoPeriodo > 0 ? Math.round((opAsesor / objetivoPeriodo) * 100) : 0;
@@ -86,7 +107,9 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
                 const dia = new Date(inicio);
                 dia.setDate(inicio.getDate() + i);
                 const diaFin = new Date(dia); diaFin.setHours(23,59,59,999);
-                const iDia = interaccionesEnPeriodo.filter(i => new Date(i.fecha) >= dia && new Date(i.fecha) <= diaFin);
+                const iDia = interaccionesEnPeriodo.filter(i =>
+                    new Date(i.fecha) >= dia && new Date(i.fecha) <= diaFin
+                );
                 serieData.push({
                     label: `${String(dia.getDate()).padStart(2,'0')}/${String(dia.getMonth()+1).padStart(2,'0')}`,
                     tipificaciones: iDia.length,
@@ -99,12 +122,15 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
                 const semanaFin = new Date(semanaInicio);
                 semanaFin.setDate(semanaInicio.getDate() + 6);
                 semanaFin.setHours(23,59,59,999);
-                const iSem = interaccionesEnPeriodo.filter(i => new Date(i.fecha) >= semanaInicio && new Date(i.fecha) <= semanaFin);
+                const iSem = interaccionesEnPeriodo.filter(i =>
+                    new Date(i.fecha) >= semanaInicio && new Date(i.fecha) <= semanaFin
+                );
                 serieData.push({
                     label: `${String(semanaInicio.getDate()).padStart(2,'0')}/${String(semanaInicio.getMonth()+1).padStart(2,'0')}`,
                     tipificaciones: iSem.length,
                     oportunidades: iSem.filter(i => i.tipo === 'interesado').length,
                 });
+                semanaInicio = new Date(semanaInicio);
                 semanaInicio.setDate(semanaInicio.getDate() + 7);
             }
         } else {
@@ -127,6 +153,7 @@ router.get('/dashboard', verifyToken, verifyRole('sistemas'), async (req, res) =
             diasRango,
             asesores,
         });
+
     } catch (error) {
         res.status(500).json({ message: 'Error al cargar dashboard sistemas', error: error.message });
     }

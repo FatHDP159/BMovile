@@ -262,4 +262,55 @@ router.post('/arreglar-fechas', verifyToken, verifyRole('sistemas'), async (req,
         res.status(500).json({ message: 'Error', error: error.message });
     }
 });
+
+router.post('/arreglar-fechas-v2', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const fichas = await FichaGestion.find({ activa: true });
+        let actualizadas = 0;
+        let totalInteracciones = 0;
+
+        // Ventana exacta de la migración ±1 hora
+        const migracionInicio = new Date('2026-05-02T06:00:00.000Z');
+        const migracionFin    = new Date('2026-05-02T09:00:00.000Z');
+
+        for (const ficha of fichas) {
+            let modificada = false;
+
+            const gestiones = await Gestion.find({
+                ruc: ficha.ruc,
+                'asesor.id_asesor': ficha.asesor.id_asesor,
+            }).sort({ createdAt: 1 });
+
+            if (gestiones.length === 0) continue;
+
+            for (let i = 0; i < ficha.interacciones.length; i++) {
+                const inter = ficha.interacciones[i];
+                const fechaInter = new Date(inter.fecha);
+
+                // Solo corregir las que tienen fecha en la ventana de migración
+                if (fechaInter >= migracionInicio && fechaInter <= migracionFin) {
+                    const gestion = gestiones[i];
+                    if (gestion?.fechas?.fecha_tipificacion) {
+                        ficha.interacciones[i].fecha = gestion.fechas.fecha_tipificacion;
+                        modificada = true;
+                        totalInteracciones++;
+                    } else if (gestion?.createdAt) {
+                        ficha.interacciones[i].fecha = gestion.createdAt;
+                        modificada = true;
+                        totalInteracciones++;
+                    }
+                }
+            }
+
+            if (modificada) {
+                await ficha.save();
+                actualizadas++;
+            }
+        }
+
+        res.json({ message: `✅ Fechas corregidas en ${actualizadas} fichas, ${totalInteracciones} interacciones` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
 module.exports = router;

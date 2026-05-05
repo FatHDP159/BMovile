@@ -237,9 +237,10 @@ const Calendario = () => {
     }, []);
 
     const esPasada = useCallback((fecha, hora) => {
-        const dt = new Date(fecha);
+        if (!fecha || !hora) return false;
+        const fechaStr = new Date(fecha).toISOString().split('T')[0];
         const [h, m] = hora.split(':');
-        dt.setHours(Number(h), Number(m), 0, 0);
+        const dt = new Date(`${fechaStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
         return dt < ahora;
     }, [ahora]);
 

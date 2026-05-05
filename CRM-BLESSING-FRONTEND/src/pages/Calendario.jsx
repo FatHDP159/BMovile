@@ -10,33 +10,33 @@ import './Usuarios.css';
 import './Calendario.css';
 
 const TIPOS = {
-    llamada:           { label: 'Llamada',           icon: faPhone,         color: '#e3f2fd', text: '#1565c0' },
-    reunion:           { label: 'Reunión',            icon: faHandshake,     color: '#e8f5e9', text: '#2e7d32' },
-    tarea:             { label: 'Tarea',              icon: faClipboardList, color: '#fff8e1', text: '#f57f17' },
-    enviar_informacion:{ label: 'Enviar información', icon: faPaperPlane,    color: '#f3e5f5', text: '#6a1b9a' },
-    seguimiento:       { label: 'Seguimiento',        icon: faRotate,        color: '#fce8e6', text: '#c62828' },
+    llamada: { label: 'Llamada', icon: faPhone, color: '#e3f2fd', text: '#1565c0' },
+    reunion: { label: 'Reunión', icon: faHandshake, color: '#e8f5e9', text: '#2e7d32' },
+    tarea: { label: 'Tarea', icon: faClipboardList, color: '#fff8e1', text: '#f57f17' },
+    enviar_informacion: { label: 'Enviar información', icon: faPaperPlane, color: '#f3e5f5', text: '#6a1b9a' },
+    seguimiento: { label: 'Seguimiento', icon: faRotate, color: '#fce8e6', text: '#c62828' },
 };
 
 const PRIORIDADES = {
-    alta:  { label: 'Alta',  color: '#fce8e6', text: '#c62828' },
+    alta: { label: 'Alta', color: '#fce8e6', text: '#c62828' },
     media: { label: 'Media', color: '#fff8e1', text: '#f57f17' },
-    baja:  { label: 'Baja',  color: '#e8f5e9', text: '#2e7d32' },
+    baja: { label: 'Baja', color: '#e8f5e9', text: '#2e7d32' },
 };
 
 const RECORDATORIOS = [
-    { value: '10min',  label: '10 minutos antes' },
-    { value: '30min',  label: '30 minutos antes' },
-    { value: '1hora',  label: '1 hora antes' },
-    { value: '1dia',   label: '1 día antes' },
+    { value: '10min', label: '10 minutos antes' },
+    { value: '30min', label: '30 minutos antes' },
+    { value: '1hora', label: '1 hora antes' },
+    { value: '1dia', label: '1 día antes' },
 ];
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const HORAS = Array.from({ length: 14 }, (_, i) => `${String(i + 7).padStart(2,'0')}:00`);
+const HORAS = Array.from({ length: 14 }, (_, i) => `${String(i + 7).padStart(2, '0')}:00`);
 
 const fmt = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
 
 const esHoy = (fecha) => {
@@ -261,7 +261,7 @@ const Calendario = () => {
                 api.get('/actividades/semana', { params: { fecha_inicio: lunes.toISOString(), fecha_fin: domingo.toISOString() } }),
                 api.get('/actividades/hoy'),
                 api.get('/actividades/pendientes'),
-                api.get('/gestiones/funnel', { params: { limit: 100 } }),
+                api.get('/ficha-gestion/funnel', { params: { limit: 100 } }),
             ]);
             setActividades(semRes.data);
             setActHoy(hoyRes.data);
@@ -300,7 +300,7 @@ const Calendario = () => {
         return actividades.filter(a => {
             const fd = new Date(a.fecha);
             return fd.getDate() === dia.getDate() && fd.getMonth() === dia.getMonth() &&
-                   fd.getFullYear() === dia.getFullYear() && a.hora.startsWith(hora.split(':')[0]);
+                fd.getFullYear() === dia.getFullYear() && a.hora.startsWith(hora.split(':')[0]);
         });
     };
 

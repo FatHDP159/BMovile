@@ -278,4 +278,28 @@ router.post('/asignar-masivo', verifyToken, verifyRole('sistemas'), async (req, 
     }
 });
 
+// POST - Asignar lista específica de RUCs
+router.post('/asignar-lista-v2', verifyToken, verifyRole('sistemas', 'supervisor'), async (req, res) => {
+    try {
+        const { id_asesor, rucs } = req.body;
+        if (!id_asesor || !rucs?.length) return res.status(400).json({ message: 'id_asesor y rucs son obligatorios' });
+
+        const resultado = await EmpresaV2.updateMany(
+            { ruc: { $in: rucs } },
+            {
+                $set: {
+                    'asignacion.id_asesor': id_asesor,
+                    'asignacion.fecha_asignada': new Date(),
+                    'asignacion.fecha_desasignacion': null,
+                    estado_base: 'asignada',
+                }
+            }
+        );
+
+        res.json({ message: `${resultado.modifiedCount} empresas asignadas correctamente` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
+
 module.exports = router;

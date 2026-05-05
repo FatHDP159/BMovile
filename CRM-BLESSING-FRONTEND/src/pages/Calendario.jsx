@@ -266,7 +266,7 @@ const Calendario = () => {
             setActividades(semRes.data);
             setActHoy(hoyRes.data);
             setPendientes(pendRes.data);
-            setClientes(funnelRes.data.gestiones || []);
+            setClientes(funnelRes.data.fichas || []);
         } catch (err) {
             console.error(err);
         }

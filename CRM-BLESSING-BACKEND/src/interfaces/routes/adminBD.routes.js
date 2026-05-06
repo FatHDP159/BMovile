@@ -284,19 +284,38 @@ router.post('/asignar-lista-v2', verifyToken, verifyRole('sistemas', 'supervisor
         const { id_asesor, rucs } = req.body;
         if (!id_asesor || !rucs?.length) return res.status(400).json({ message: 'id_asesor y rucs son obligatorios' });
 
-        const resultado = await EmpresaV2.updateMany(
-            { ruc: { $in: rucs } },
-            {
+        const resultados = [];
+
+        for (const ruc of rucs) {
+            const empresa = await EmpresaV2.findOne({ ruc });
+            if (!empresa) {
+                resultados.push({ ruc, estado: 'no_encontrada' });
+                continue;
+            }
+            // Validar que no esté asignada a otro asesor
+            if (empresa.estado_base === 'asignada' && empresa.asignacion?.id_asesor?.toString() !== id_asesor) {
+                resultados.push({ ruc, estado: 'ya_asignada', asesor: empresa.asignacion.id_asesor });
+                continue;
+            }
+            await EmpresaV2.updateOne({ ruc }, {
                 $set: {
                     'asignacion.id_asesor': id_asesor,
                     'asignacion.fecha_asignada': new Date(),
                     'asignacion.fecha_desasignacion': null,
                     estado_base: 'asignada',
                 }
-            }
-        );
+            });
+            resultados.push({ ruc, estado: 'asignada' });
+        }
 
-        res.json({ message: `${resultado.modifiedCount} empresas asignadas correctamente` });
+        const asignadas = resultados.filter(r => r.estado === 'asignada').length;
+        const yaAsignadas = resultados.filter(r => r.estado === 'ya_asignada').length;
+        const noEncontradas = resultados.filter(r => r.estado === 'no_encontrada').length;
+
+        res.json({ 
+            message: `${asignadas} asignadas, ${yaAsignadas} ya tenían otro asesor, ${noEncontradas} no encontradas`,
+            resultados 
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error', error: error.message });
     }

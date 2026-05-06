@@ -861,7 +861,7 @@ const MisEmpresas = () => {
                 </div>
             )}
 
-            {modalTipificar && <ModalTipificar empresa={modalTipificar.empresa} ficha={modalTipificar.ficha} onClose={() => setModalTipificar(null)} onGuardado={() => { recargarFicha(modalTipificar.empresa.ruc); setModalTipificar(null); }} />}
+            {modalTipificar && <ModalTipificar empresa={modalTipificar.empresa} ficha={modalTipificar.ficha} onClose={() => setModalTipificar(null)} onGuardado={() => { cargar(page); setModalTipificar(null); }} />}
             {modalRRLL && <ModalRRLL empresa={modalRRLL} onClose={() => setModalRRLL(null)} />}
             {modalDireccion && <ModalDireccion empresa={modalDireccion} onClose={() => setModalDireccion(null)} />}
             {modalHistorial && <ModalHistorial empresa={modalHistorial} onClose={() => setModalHistorial(null)} />}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faFunnelDollar, faChevronLeft, faChevronRight, faPen,
-    faHistory, faPlus, faBullseye, faPhone, faIdCard, faBriefcase
+    faHistory, faPlus, faBullseye, faPhone, faIdCard, faBriefcase, faDownload
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Usuarios.css';
@@ -64,6 +64,74 @@ const DiasCell = ({ fecha }) => {
         return <span className={`dias-badge ${clase}`}>{dias}d</span>;
     }
     return <span className="dias-badge dias-limbo">+{Math.abs(dias)}d</span>;
+};
+
+// ── Función descargar funnel ──────────────────────────────────────────────────
+const descargarFunnel = async (endpoint, filtros) => {
+    try {
+        const res = await api.get(endpoint, {
+            params: { ...filtros, page: 1, limit: 9999 },
+        });
+        const fichas = res.data.fichas || [];
+        if (fichas.length === 0) { alert('No hay datos para descargar'); return; }
+
+        const filas = [];
+        fichas.forEach(f => {
+            const asesor = f.asesor?.id_asesor?.nombre_user || '—';
+            const ultimaInter = f.interacciones?.length > 0
+                ? f.interacciones[f.interacciones.length - 1]
+                : null;
+            const opos = f.oportunidades?.length > 0 ? f.oportunidades : [null];
+
+            opos.forEach(opo => {
+                filas.push({
+                    'RUC': f.ruc,
+                    'Razón Social': f.razon_social,
+                    'Asesor': asesor,
+                    'Segmento': f.segmento || '—',
+                    'Líneas': f.total_lineas || 0,
+                    'Último Contacto': fmt(f.fechas?.fecha_ultimo_contacto),
+                    'Última Interacción': ultimaInter?.tipo || '—',
+                    'Comentario': ultimaInter?.comentario || '—',
+                    'Contacto Nombre': ultimaInter?.contacto?.nombre || '—',
+                    'Contacto Teléfono': ultimaInter?.contacto?.telefono || '—',
+                    'Contacto DNI': ultimaInter?.contacto?.dni || '—',
+                    'Opo. Título': opo?.titulo || opo?.producto || '—',
+                    'Opo. Producto': opo?.producto || '—',
+                    'Opo. Cantidad': opo?.cantidad ?? '—',
+                    'Opo. Cargo Fijo': opo?.cargo_fijo ?? '—',
+                    'Opo. Estado': opo?.estado || '—',
+                    'Opo. Sustento': opo ? (opo.sustento ? 'Sí' : 'No') : '—',
+                    'Opo. Cierre Esp.': fmt(opo?.fecha_cierre_esperada),
+                    'Opo. Contacto Nombre': opo?.contacto?.nombre || '—',
+                    'Opo. Contacto Tel.': opo?.contacto?.telefono || '—',
+                    'Opo. Contacto DNI': opo?.contacto?.dni || '—',
+                    'Entel': opo?.operadores?.entel ?? '—',
+                    'Claro': opo?.operadores?.claro ?? '—',
+                    'Movistar': opo?.operadores?.movistar ?? '—',
+                    'Otros': opo?.operadores?.otros ?? '—',
+                    'Total Operadores': opo?.operadores?.total ?? '—',
+                });
+            });
+        });
+
+        const headers = Object.keys(filas[0]);
+        const csv = [
+            headers.join(','),
+            ...filas.map(f => headers.map(h => `"${String(f[h] ?? '').replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `funnel_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error(err);
+        alert('Error al descargar funnel');
+    }
 };
 
 // ── Modal Gestionar Oportunidad ───────────────────────────────────────────────
@@ -147,7 +215,6 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
                 )}
 
                 <div className="funnel-form">
-                    {/* Contacto */}
                     <p style={{ fontSize: 12, fontWeight: 600, color: '#1D2558', marginBottom: 8 }}>Datos de contacto</p>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 4 }}>
                         <div className="form-field">
@@ -163,7 +230,6 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
                             <input className="form-input" value={form.contacto_dni} onChange={e => setForm(f => ({ ...f, contacto_dni: e.target.value }))} placeholder="Ej: 12345678" />
                         </div>
                     </div>
-
                     <div className="form-field"><label>Título</label>
                         <input className="form-input" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} />
                     </div>
@@ -253,7 +319,6 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
             <div className="modal" style={{ width: '90vw', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
                 <h2><FontAwesomeIcon icon={faPlus} style={{ marginRight: 8 }} />Nueva Oportunidad — {ficha.razon_social}</h2>
                 {error && <p style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{error}</p>}
-
                 <p style={{ fontSize: 12, fontWeight: 600, color: '#1D2558', marginBottom: 8 }}>Datos de contacto</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 4 }}>
                     <div className="form-field">
@@ -269,7 +334,6 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
                         <input className="form-input" value={form.contacto_dni} onChange={e => setForm(f => ({ ...f, contacto_dni: e.target.value }))} placeholder="Ej: 12345678" />
                     </div>
                 </div>
-
                 <div className="form-field"><label>Título</label>
                     <input className="form-input" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ej: Fibra 10 líneas" />
                 </div>
@@ -320,7 +384,7 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
     );
 };
 
-// ── Modal principal de ficha (Editar) ─────────────────────────────────────────
+// ── Modal principal de ficha ──────────────────────────────────────────────────
 const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) => {
     const [ficha, setFicha] = useState(fichaInicial);
     const [modalGestionarOpo, setModalGestionarOpo] = useState(null);
@@ -383,7 +447,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                                             <div style={{ fontWeight: 600, fontSize: 13 }}>{opo.titulo || opo.producto || `Oportunidad ${i + 1}`}</div>
                                             <EstadoOpoBadge estado={opo.estado} />
                                         </div>
-                                        {/* Contacto en historial */}
                                         {opo.contacto?.nombre && (
                                             <div style={{ fontSize: 12, color: '#555', marginBottom: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                                 <span><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />{opo.contacto.nombre}</span>
@@ -427,7 +490,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
                                         <FontAwesomeIcon icon={faPen} /> Gestionar
                                     </button>
                                 </div>
-                                {/* Contacto en oportunidad activa */}
                                 {opo.contacto?.nombre && (
                                     <div style={{ fontSize: 12, color: '#555', marginBottom: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                         <span><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />{opo.contacto.nombre}</span>
@@ -475,6 +537,7 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado, esSupervisor }) 
 const Funnel = ({ esSupervisor = false }) => {
     const [fichas, setFichas] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [descargando, setDescargando] = useState(false);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -525,13 +588,31 @@ const Funnel = ({ esSupervisor = false }) => {
         );
     };
 
+    const handleDescargar = async () => {
+        setDescargando(true);
+        await descargarFunnel(endpoint, {
+            busqueda, segmento,
+            lineas_min: lineasMin,
+            lineas_max: lineasMax,
+            estados: estadosSel.join(','),
+            asesor: filtroAsesor,
+        });
+        setDescargando(false);
+    };
+
     return (
         <div>
-            <div className="page-header">
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h1>
                     <FontAwesomeIcon icon={faFunnelDollar} /> Funnel
                     <span style={{ fontSize: 14, color: '#666', marginLeft: 12, fontWeight: 'normal' }}>{total} empresas</span>
                 </h1>
+                {esSupervisor && (
+                    <button className="btn-primary" style={{ fontSize: 12 }} onClick={handleDescargar} disabled={descargando}>
+                        <FontAwesomeIcon icon={faDownload} style={{ marginRight: 6 }} />
+                        {descargando ? 'Descargando...' : 'Descargar Funnel'}
+                    </button>
+                )}
             </div>
 
             <div className="search-bar" style={{ flexWrap: 'wrap', gap: 10 }}>

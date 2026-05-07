@@ -32,24 +32,12 @@ const headerStyle = {
     },
 };
 
-const cellStyle = {
-    alignment: { vertical: 'middle', wrapText: false },
-    border: {
-        top:    { style: 'thin', color: { argb: 'FFE8E8E8' } },
-        bottom: { style: 'thin', color: { argb: 'FFE8E8E8' } },
-        left:   { style: 'thin', color: { argb: 'FFE8E8E8' } },
-        right:  { style: 'thin', color: { argb: 'FFE8E8E8' } },
-    },
-};
+const cellStylePar   = { alignment: { vertical: 'middle' }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F6FA' } }, border: { top: { style: 'thin', color: { argb: 'FFE8E8E8' } }, bottom: { style: 'thin', color: { argb: 'FFE8E8E8' } }, left: { style: 'thin', color: { argb: 'FFE8E8E8' } }, right: { style: 'thin', color: { argb: 'FFE8E8E8' } } } };
+const cellStyleImpar = { alignment: { vertical: 'middle' }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }, border: { top: { style: 'thin', color: { argb: 'FFE8E8E8' } }, bottom: { style: 'thin', color: { argb: 'FFE8E8E8' } }, left: { style: 'thin', color: { argb: 'FFE8E8E8' } }, right: { style: 'thin', color: { argb: 'FFE8E8E8' } } } };
 
 const aplicarEstiloFila = (row, isEven) => {
     row.eachCell({ includeEmpty: true }, (cell) => {
-        cell.style = {
-            ...cellStyle,
-            fill: isEven
-                ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F6FA' } }
-                : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
-        };
+        cell.style = isEven ? cellStylePar : cellStyleImpar;
     });
 };
 
@@ -57,12 +45,8 @@ const setupHoja = (ws, headers, colWidths) => {
     ws.addRow(headers);
     const headerRow = ws.getRow(1);
     headerRow.height = 30;
-    headerRow.eachCell({ includeEmpty: true }, (cell) => {
-        cell.style = headerStyle;
-    });
-    colWidths.forEach((w, i) => {
-        ws.getColumn(i + 1).width = w;
-    });
+    headerRow.eachCell({ includeEmpty: true }, (cell) => { cell.style = headerStyle; });
+    colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
 };
 
@@ -71,7 +55,7 @@ router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, r
     try {
         const { busqueda, estados, segmento, lineas_min, lineas_max, asesor } = req.query;
 
-        // ── Cargar fichas del funnel ──────────────────────────────────────────
+        // ── 1. Filtro fichas ──────────────────────────────────────────────────
         const filtro = { activa: true, 'oportunidades.0': { $exists: true } };
         if (asesor) filtro['asesor.id_asesor'] = asesor;
         if (busqueda) filtro.$or = [
@@ -89,58 +73,76 @@ router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, r
             if (arr.length > 0) filtro['oportunidades.estado'] = { $in: arr };
         }
 
-        const fichas = await FichaGestion.find(filtro)
+        // ── 2. Cargar todo en paralelo ────────────────────────────────────────
+        const fichasPromise = FichaGestion.find(filtro)
             .populate('asesor.id_asesor', 'nombre_user')
             .sort({ 'fechas.fecha_ultimo_contacto': -1 })
             .lean();
 
-        if (fichas.length === 0) {
-            return res.status(404).json({ message: 'No hay datos para exportar' });
-        }
+        const fichas = await fichasPromise;
+        if (fichas.length === 0) return res.status(404).json({ message: 'No hay datos para exportar' });
 
-        // ── Cargar empresas_v2 ────────────────────────────────────────────────
         const rucs = [...new Set(fichas.map(f => f.ruc))];
-        const empresas = await EmpresaV2.find({ ruc: { $in: rucs } }).lean();
+
+        // Cargar empresas y contactos en paralelo
+        const [empresas, contactosAuth] = await Promise.all([
+            EmpresaV2.find({ ruc: { $in: rucs } }).lean(),
+            ContactoAutorizado.find({ ruc: { $in: rucs } }).lean(),
+        ]);
+
+        // Cargar datos de contactos en una sola query
+        const contactoIds = contactosAuth.map(c => c._id);
+        const datosContactos = await ContactoAutorizadoDato.find({
+            id_contacto: { $in: contactoIds }
+        }).lean();
+
+        // ── 3. Construir Maps para lookup O(1) ───────────────────────────────
         const empresaMap = {};
         empresas.forEach(e => { empresaMap[e.ruc] = e; });
 
-        // ── Cargar contactos autorizados ──────────────────────────────────────
-        const contactosAuth = await ContactoAutorizado.find({ ruc: { $in: rucs } }).lean();
-        const datosContactos = await ContactoAutorizadoDato.find({ id_contacto: { $in: contactosAuth.map(c => c._id) } }).lean();
+        // Map datos contacto por id_contacto
+        const datosMap = {};
+        datosContactos.forEach(d => {
+            const key = d.id_contacto?.toString();
+            if (!datosMap[key]) datosMap[key] = [];
+            datosMap[key].push(d);
+        });
 
+        // Map contactos por ruc
         const contactosMap = {};
         contactosAuth.forEach(c => {
             if (!contactosMap[c.ruc]) contactosMap[c.ruc] = [];
-            const tels = datosContactos.filter(d => d.id_contacto?.toString() === c._id?.toString() && d.tipo === 'telefono').map(d => d.valor);
-            const correos = datosContactos.filter(d => d.id_contacto?.toString() === c._id?.toString() && d.tipo === 'correo').map(d => d.valor);
-            contactosMap[c.ruc].push({ ...c, telefonos: tels, correos });
+            const datos = datosMap[c._id?.toString()] || [];
+            contactosMap[c.ruc].push({
+                nombre:    c.nombre,
+                cargo:     c.cargo,
+                dni:       c.dni,
+                telefonos: datos.filter(d => d.tipo === 'telefono').map(d => d.valor),
+                correos:   datos.filter(d => d.tipo === 'correo').map(d => d.valor),
+            });
         });
 
-        // ── Crear workbook ────────────────────────────────────────────────────
+        // ── 4. Crear workbook ─────────────────────────────────────────────────
         const wb = new ExcelJS.Workbook();
         wb.creator = 'CRM B-Movile';
         wb.created = new Date();
 
-        // ════════════════════════════════════════════════════════════════════
-        // HOJA 1 — FUNNEL
-        // ════════════════════════════════════════════════════════════════════
+        // ── HOJA 1: FUNNEL ────────────────────────────────────────────────────
         const ws1 = wb.addWorksheet('Funnel');
-        const h1 = [
+        setupHoja(ws1, [
             'RUC', 'Razón Social', 'Asesor', 'Segmento', 'Líneas',
             'Último Contacto', 'Estado Oportunidad', 'Producto',
             'Cantidad', 'Cargo Fijo (S/.)', 'Sustento', 'Fecha Cierre Esp.',
             'Entel Neg.', 'Claro Neg.', 'Movistar Neg.', 'Otros Neg.', 'Total Neg.',
             'Contacto Funnel - Nombre', 'Contacto Funnel - Teléfono', 'Contacto Funnel - DNI',
             'Comentario',
-        ];
-        const w1 = [14, 40, 20, 12, 8, 16, 20, 18, 10, 14, 10, 16, 10, 10, 12, 10, 10, 28, 16, 12, 35];
-        setupHoja(ws1, h1, w1);
+        ], [14, 40, 20, 12, 8, 16, 22, 18, 10, 14, 10, 16, 10, 10, 12, 10, 10, 28, 16, 12, 35]);
 
-        fichas.forEach((f, idx) => {
+        let rowIdx1 = 0;
+        fichas.forEach(f => {
             const asesorNombre = f.asesor?.id_asesor?.nombre_user || '';
             const ultimaInter = f.interacciones?.length > 0 ? f.interacciones[f.interacciones.length - 1] : null;
             const opos = f.oportunidades?.length > 0 ? f.oportunidades : [null];
-
             opos.forEach(opo => {
                 const row = ws1.addRow([
                     limpio(f.ruc),
@@ -165,17 +167,16 @@ router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, r
                     limpio(opo?.contacto?.dni),
                     limpio(ultimaInter?.comentario),
                 ]);
-                aplicarEstiloFila(row, idx % 2 === 0);
+                aplicarEstiloFila(row, rowIdx1 % 2 === 0);
+                rowIdx1++;
             });
         });
 
-        // ════════════════════════════════════════════════════════════════════
-        // HOJA 2 — SUNAT
-        // ════════════════════════════════════════════════════════════════════
+        // ── HOJA 2: SUNAT ─────────────────────────────────────────────────────
         const ws2 = wb.addWorksheet('SUNAT');
-        const h2 = ['RUC', 'Razón Social', 'Estado SUNAT', 'Condición', 'Dirección', 'Actividad Económica'];
-        const w2 = [14, 45, 16, 16, 55, 40];
-        setupHoja(ws2, h2, w2);
+        setupHoja(ws2, [
+            'RUC', 'Razón Social', 'Estado SUNAT', 'Condición', 'Dirección', 'Actividad Económica'
+        ], [14, 45, 16, 16, 55, 40]);
 
         rucs.forEach((ruc, idx) => {
             const e = empresaMap[ruc];
@@ -190,18 +191,14 @@ router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, r
             aplicarEstiloFila(row, idx % 2 === 0);
         });
 
-        // ════════════════════════════════════════════════════════════════════
-        // HOJA 3 — SALESFORCE
-        // ════════════════════════════════════════════════════════════════════
+        // ── HOJA 3: SALESFORCE ────────────────────────────────────────────────
         const ws3 = wb.addWorksheet('Salesforce');
-        const h3 = [
+        setupHoja(ws3, [
             'RUC', 'Razón Social', 'Segmento SF', 'Consultor SF',
             'Fecha Asignación SF', 'Sustento SF', 'Estatus SF',
             'Tipo Cliente', 'Facturación', 'Grupo Económico',
             'Detalle Servicios', 'Oportunidad Ganada', 'Fecha Oportunidad',
-        ];
-        const w3 = [14, 40, 14, 25, 18, 12, 18, 16, 14, 25, 30, 18, 18];
-        setupHoja(ws3, h3, w3);
+        ], [14, 40, 14, 25, 18, 12, 18, 16, 14, 25, 30, 18, 18]);
 
         rucs.forEach((ruc, idx) => {
             const e = empresaMap[ruc];
@@ -224,13 +221,11 @@ router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, r
             aplicarEstiloFila(row, idx % 2 === 0);
         });
 
-        // ════════════════════════════════════════════════════════════════════
-        // HOJA 4 — OSIPTEL
-        // ════════════════════════════════════════════════════════════════════
+        // ── HOJA 4: OSIPTEL ───────────────────────────────────────────────────
         const ws4 = wb.addWorksheet('OSIPTEL - Líneas');
-        const h4 = ['RUC', 'Razón Social', 'Entel', 'Claro', 'Movistar', 'Otros', 'Total Líneas'];
-        const w4 = [14, 45, 10, 10, 12, 10, 14];
-        setupHoja(ws4, h4, w4);
+        setupHoja(ws4, [
+            'RUC', 'Razón Social', 'Entel', 'Claro', 'Movistar', 'Otros', 'Total Líneas'
+        ], [14, 45, 10, 10, 12, 10, 14]);
 
         rucs.forEach((ruc, idx) => {
             const e = empresaMap[ruc];
@@ -238,52 +233,44 @@ router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, r
             const row = ws4.addRow([
                 limpio(ruc),
                 limpio(e?.sunat?.razon_social),
-                o.entel ?? 0,
-                o.claro ?? 0,
+                o.entel    ?? 0,
+                o.claro    ?? 0,
                 o.movistar ?? 0,
-                o.otros ?? 0,
-                o.total ?? 0,
+                o.otros    ?? 0,
+                o.total    ?? 0,
             ]);
             aplicarEstiloFila(row, idx % 2 === 0);
-            // Resaltar total
             row.getCell(7).font = { bold: true };
         });
 
-        // ════════════════════════════════════════════════════════════════════
-        // HOJA 5 — CONTACTOS AUTORIZADOS
-        // ════════════════════════════════════════════════════════════════════
+        // ── HOJA 5: CONTACTOS AUTORIZADOS ─────────────────────────────────────
         const ws5 = wb.addWorksheet('Contactos Autorizados');
-        const h5 = ['ruc', 'nombre', 'cargo', 'dni', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'correo_1', 'correo_2', 'correo_3'];
-        const w5 = [14, 40, 25, 12, 14, 14, 14, 14, 14, 30, 30, 30];
-        setupHoja(ws5, h5, w5);
+        setupHoja(ws5, [
+            'ruc', 'nombre', 'cargo', 'dni',
+            'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5',
+            'correo_1', 'correo_2', 'correo_3',
+        ], [14, 40, 25, 12, 14, 14, 14, 14, 14, 30, 30, 30]);
 
         let rowIdx5 = 0;
         rucs.forEach(ruc => {
             const contactos = contactosMap[ruc] || [];
-            if (contactos.length === 0) return;
             contactos.forEach(c => {
-                const tels = c.telefonos || [];
-                const corrs = c.correos || [];
+                const t = c.telefonos || [];
+                const cr = c.correos || [];
                 const row = ws5.addRow([
                     limpio(ruc),
                     limpio(c.nombre),
                     limpio(c.cargo),
                     limpio(c.dni),
-                    limpio(tels[0]),
-                    limpio(tels[1]),
-                    limpio(tels[2]),
-                    limpio(tels[3]),
-                    limpio(tels[4]),
-                    limpio(corrs[0]),
-                    limpio(corrs[1]),
-                    limpio(corrs[2]),
+                    limpio(t[0]), limpio(t[1]), limpio(t[2]), limpio(t[3]), limpio(t[4]),
+                    limpio(cr[0]), limpio(cr[1]), limpio(cr[2]),
                 ]);
                 aplicarEstiloFila(row, rowIdx5 % 2 === 0);
                 rowIdx5++;
             });
         });
 
-        // ── Enviar archivo ────────────────────────────────────────────────────
+        // ── 5. Enviar ─────────────────────────────────────────────────────────
         const fecha = new Date().toISOString().split('T')[0];
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="funnel_${fecha}.xlsx"`);

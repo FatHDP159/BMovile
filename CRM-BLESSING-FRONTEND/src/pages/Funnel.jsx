@@ -67,70 +67,32 @@ const DiasCell = ({ fecha }) => {
 };
 
 // ── Función descargar funnel ──────────────────────────────────────────────────
-const descargarFunnel = async (endpoint, filtros) => {
+const handleDescargar = async () => {
+    setDescargando(true);
     try {
-        const res = await api.get(endpoint, {
-            params: { ...filtros, page: 1, limit: 9999 },
+        const params = new URLSearchParams({
+            busqueda, segmento,
+            lineas_min: lineasMin,
+            lineas_max: lineasMax,
+            estados: estadosSel.join(','),
+            asesor: filtroAsesor,
         });
-        const fichas = res.data.fichas || [];
-        if (fichas.length === 0) { alert('No hay datos para descargar'); return; }
-
-        const filas = [];
-        fichas.forEach(f => {
-            const asesor = f.asesor?.id_asesor?.nombre_user || '—';
-            const ultimaInter = f.interacciones?.length > 0
-                ? f.interacciones[f.interacciones.length - 1]
-                : null;
-            const opos = f.oportunidades?.length > 0 ? f.oportunidades : [null];
-
-            opos.forEach(opo => {
-                filas.push({
-                    'RUC': f.ruc,
-                    'Razón Social': f.razon_social,
-                    'Asesor': asesor,
-                    'Segmento': f.segmento || '—',
-                    'Líneas': f.total_lineas || 0,
-                    'Último Contacto': fmt(f.fechas?.fecha_ultimo_contacto),
-                    'Última Interacción': ultimaInter?.tipo || '—',
-                    'Comentario': ultimaInter?.comentario || '—',
-                    'Contacto Nombre': ultimaInter?.contacto?.nombre || '—',
-                    'Contacto Teléfono': ultimaInter?.contacto?.telefono || '—',
-                    'Contacto DNI': ultimaInter?.contacto?.dni || '—',
-                    'Opo. Título': opo?.titulo || opo?.producto || '—',
-                    'Opo. Producto': opo?.producto || '—',
-                    'Opo. Cantidad': opo?.cantidad ?? '—',
-                    'Opo. Cargo Fijo': opo?.cargo_fijo ?? '—',
-                    'Opo. Estado': opo?.estado || '—',
-                    'Opo. Sustento': opo ? (opo.sustento ? 'Sí' : 'No') : '—',
-                    'Opo. Cierre Esp.': fmt(opo?.fecha_cierre_esperada),
-                    'Opo. Contacto Nombre': opo?.contacto?.nombre || '—',
-                    'Opo. Contacto Tel.': opo?.contacto?.telefono || '—',
-                    'Opo. Contacto DNI': opo?.contacto?.dni || '—',
-                    'Entel': opo?.operadores?.entel ?? '—',
-                    'Claro': opo?.operadores?.claro ?? '—',
-                    'Movistar': opo?.operadores?.movistar ?? '—',
-                    'Otros': opo?.operadores?.otros ?? '—',
-                    'Total Operadores': opo?.operadores?.total ?? '—',
-                });
-            });
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/export-funnel?${params}`, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-
-        const headers = Object.keys(filas[0]);
-        const csv = [
-            headers.join(','),
-            ...filas.map(f => headers.map(h => `"${String(f[h] ?? '').replace(/"/g, '""')}"`).join(','))
-        ].join('\n');
-
-        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        if (!res.ok) throw new Error('Error al descargar');
+        const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `funnel_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `funnel_${new Date().toISOString().split('T')[0]}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
     } catch (err) {
-        console.error(err);
-        alert('Error al descargar funnel');
+        alert('Error al descargar el funnel');
+    } finally {
+        setDescargando(false);
     }
 };
 

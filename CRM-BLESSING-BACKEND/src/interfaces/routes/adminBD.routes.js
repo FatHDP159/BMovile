@@ -321,4 +321,26 @@ router.post('/asignar-lista-v2', verifyToken, verifyRole('sistemas', 'supervisor
     }
 });
 
+router.post('/desasignar-lista', verifyToken, verifyRole('sistemas', 'supervisor'), async (req, res) => {
+    try {
+        const { rucs } = req.body;
+        if (!rucs?.length) return res.status(400).json({ message: 'rucs es obligatorio' });
+
+        const resultado = await EmpresaV2.updateMany(
+            { ruc: { $in: rucs } },
+            {
+                $set: {
+                    'asignacion.id_asesor': null,
+                    'asignacion.fecha_asignada': null,
+                    'asignacion.fecha_desasignacion': null,
+                    estado_base: 'disponible',
+                }
+            }
+        );
+
+        res.json({ message: `${resultado.modifiedCount} empresas desasignadas correctamente` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
 module.exports = router;

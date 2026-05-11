@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const fichaGestionRepository = require('../../infrastructure/repositories/fichaGestion.repository.js');
-const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js'); // ← AGREGAR
-const Gestion = require('../../domain/gestiones/gestiones.model.js');
+const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js');
 const { verifyToken } = require('../../infrastructure/middlewares/auth.middleware');
 const { verifyRole } = require('../../infrastructure/middlewares/roles.middleware');
 
@@ -49,6 +48,27 @@ router.put('/:fichaId/oportunidades/:opoId', verifyToken, verifyRole('asesor', '
         res.json({ message: 'Oportunidad actualizada correctamente', ficha });
     } catch (error) {
         res.status(500).json({ message: 'Error al actualizar oportunidad', error: error.message });
+    }
+});
+
+// ── PUT /:fichaId/interacciones/:interaccionId — Editar tipo y comentario ───
+router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('asesor', 'supervisor'), async (req, res) => {
+    try {
+        const { tipo, comentario } = req.body;
+        const ficha = await FichaGestion.findOneAndUpdate(
+            { _id: req.params.fichaId, 'interacciones._id': req.params.interaccionId },
+            {
+                $set: {
+                    'interacciones.$.tipo': tipo,
+                    'interacciones.$.comentario': comentario || null,
+                }
+            },
+            { new: true }
+        );
+        if (!ficha) return res.status(404).json({ message: 'Ficha o interacción no encontrada' });
+        res.json({ message: 'Interacción actualizada', ficha });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar interacción', error: error.message });
     }
 });
 
@@ -149,216 +169,4 @@ router.patch('/:id/archivar', verifyToken, verifyRole('supervisor', 'sistemas'),
     }
 });
 
-// PUT /:fichaId/interacciones/:interaccionId — Editar tipo y comentario
-router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('asesor', 'supervisor'), async (req, res) => {
-    try {
-        const { tipo, comentario } = req.body;
-        const ficha = await FichaGestion.findOneAndUpdate(
-            { _id: req.params.fichaId, 'interacciones._id': req.params.interaccionId },
-            {
-                $set: {
-                    'interacciones.$.tipo': tipo,
-                    'interacciones.$.comentario': comentario || null,
-                }
-            },
-            { new: true }
-        );
-        if (!ficha) return res.status(404).json({ message: 'Ficha o interacción no encontrada' });
-        res.json({ message: 'Interacción actualizada', ficha });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar interacción', error: error.message });
-    }
-});
-
-// POST /arreglar-contactos — Copia contactos de gestiones a oportunidades (temporal)
-router.post('/arreglar-contactos', verifyToken, verifyRole('sistemas'), async (req, res) => {
-    try {
-        const fichas = await FichaGestion.find({ 'oportunidades.0': { $exists: true } });
-        let actualizadas = 0;
-
-        const mapearEstado = (estado) => {
-            if (estado === 'Ganada') return 'Negociada Aprobada';
-            if (estado === 'Perdida') return 'Negociada Rechazada';
-            if (estado === 'En proceso') return 'Negociación';
-            const validos = ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada', 'Negociada Rechazada'];
-            return validos.includes(estado) ? estado : 'Identificada';
-        };
-
-        for (const ficha of fichas) {
-            let modificada = false;
-            for (const opo of ficha.oportunidades) {
-                // Corregir estado inválido
-                const estadoCorregido = mapearEstado(opo.estado);
-                if (estadoCorregido !== opo.estado) {
-                    opo.estado = estadoCorregido;
-                    modificada = true;
-                }
-                // Copiar contacto si falta
-                if (!opo.contacto?.nombre) {
-                    const gestion = await Gestion.findOne({
-                        ruc: ficha.ruc,
-                        'asesor.id_asesor': ficha.asesor.id_asesor,
-                        tipo_tipificacion: 'interesado',
-                        'contacto.nombre': { $ne: null }
-                    }).sort({ createdAt: 1 });
-
-                    if (gestion?.contacto?.nombre) {
-                        opo.contacto = {
-                            nombre:   gestion.contacto.nombre   || null,
-                            telefono: gestion.contacto.telefono || null,
-                            dni:      gestion.contacto.dni      || null,
-                        };
-                        modificada = true;
-                    }
-                }
-            }
-            if (modificada) {
-                await ficha.save();
-                actualizadas++;
-            }
-        }
-
-        res.json({ message: `✅ Contactos actualizados en ${actualizadas} fichas` });
-    } catch (error) {
-        res.status(500).json({ message: 'Error', error: error.message });
-    }
-});
-// POST /arreglar-fechas — Corrige fechas de interacciones migradas
-router.post('/arreglar-fechas', verifyToken, verifyRole('sistemas'), async (req, res) => {
-    try {
-        const fichas = await FichaGestion.find({ activa: true });
-        let actualizadas = 0;
-        let totalInteracciones = 0;
-
-        for (const ficha of fichas) {
-            let modificada = false;
-
-            // Obtener todas las gestiones originales de este ruc+asesor ordenadas por fecha
-            const gestiones = await Gestion.find({
-                ruc: ficha.ruc,
-                'asesor.id_asesor': ficha.asesor.id_asesor,
-            }).sort({ createdAt: 1 });
-
-            if (gestiones.length === 0) continue;
-
-            for (let i = 0; i < ficha.interacciones.length; i++) {
-                const inter = ficha.interacciones[i];
-                const gestion = gestiones[i]; // misma posición
-                if (gestion?.fechas?.fecha_tipificacion) {
-                    ficha.interacciones[i].fecha = gestion.fechas.fecha_tipificacion;
-                    modificada = true;
-                    totalInteracciones++;
-                }
-            }
-
-            if (modificada) {
-                await ficha.save();
-                actualizadas++;
-            }
-        }
-
-        res.json({ message: `✅ Fechas corregidas en ${actualizadas} fichas, ${totalInteracciones} interacciones` });
-    } catch (error) {
-        res.status(500).json({ message: 'Error', error: error.message });
-    }
-});
-
-router.post('/arreglar-fechas-v2', verifyToken, verifyRole('sistemas'), async (req, res) => {
-    try {
-        const fichas = await FichaGestion.find({ activa: true });
-        let actualizadas = 0;
-        let totalInteracciones = 0;
-
-        for (const ficha of fichas) {
-            let modificada = false;
-
-            const gestiones = await Gestion.find({
-                ruc: ficha.ruc,
-                'asesor.id_asesor': ficha.asesor.id_asesor,
-            }).sort({ createdAt: 1 });
-
-            if (gestiones.length === 0) continue;
-
-            for (let i = 0; i < ficha.interacciones.length; i++) {
-                const inter = ficha.interacciones[i];
-                const fechaInter = new Date(inter.fecha);
-
-                // Corregir si la fecha es mayo 2026 (migración)
-                if (fechaInter.getFullYear() === 2026 && fechaInter.getMonth() === 4) {
-                    const gestion = gestiones[i];
-                    const fechaReal = gestion?.fechas?.fecha_tipificacion || gestion?.createdAt;
-                    if (fechaReal) {
-                        ficha.interacciones[i].fecha = fechaReal;
-                        modificada = true;
-                        totalInteracciones++;
-                    }
-                }
-            }
-
-            if (modificada) {
-                await ficha.save();
-                actualizadas++;
-            }
-        }
-
-        res.json({ message: `✅ Fechas corregidas en ${actualizadas} fichas, ${totalInteracciones} interacciones` });
-    } catch (error) {
-        res.status(500).json({ message: 'Error', error: error.message });
-    }
-});
-router.post('/reconstruir-interacciones', verifyToken, verifyRole('sistemas'), async (req, res) => {
-    try {
-        const fichas = await FichaGestion.find({ activa: true });
-        let actualizadas = 0;
-        let totalInteracciones = 0;
-
-        for (const ficha of fichas) {
-            if (!ficha.asesor?.id_asesor) continue;
-
-            // Obtener todas las gestiones originales ordenadas por fecha
-            const gestiones = await Gestion.find({
-                ruc: ficha.ruc,
-                'asesor.id_asesor': ficha.asesor.id_asesor,
-            }).sort({ 'fechas.fecha_tipificacion': 1 });
-
-            if (gestiones.length === 0) continue;
-
-            // Reconstruir interacciones desde gestiones originales
-            const nuevasInteracciones = gestiones.map(g => ({
-                fecha: g.fechas?.fecha_tipificacion || g.createdAt,
-                tipo: g.tipo_tipificacion,
-                comentario: g.comentario || g.oportunidad?.comentario || null,
-                contacto: {
-                    nombre:   g.contacto?.nombre   || null,
-                    telefono: g.contacto?.telefono || null,
-                    dni:      g.contacto?.dni      || null,
-                },
-                agregado_por: {
-                    id:     g.asesor?.id_asesor,
-                    nombre: 'Migrado',
-                    rol:    'asesor',
-                },
-            }));
-
-            ficha.interacciones = nuevasInteracciones;
-
-            // Actualizar fecha_ultimo_contacto con la más reciente
-            const fechas = nuevasInteracciones.map(i => new Date(i.fecha)).filter(f => !isNaN(f));
-            if (fechas.length > 0) {
-                ficha.fechas.fecha_ultimo_contacto = new Date(Math.max(...fechas));
-                ficha.fechas.fecha_inicio = new Date(Math.min(...fechas));
-            }
-
-            await ficha.save();
-            actualizadas++;
-            totalInteracciones += nuevasInteracciones.length;
-        }
-
-        res.json({ 
-            message: `✅ Interacciones reconstruidas en ${actualizadas} fichas, ${totalInteracciones} interacciones totales` 
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Error', error: error.message });
-    }
-});
 module.exports = router;

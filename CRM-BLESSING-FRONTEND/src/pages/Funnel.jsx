@@ -4,30 +4,31 @@ import {
     faFunnelDollar, faChevronLeft, faChevronRight, faPen,
     faHistory, faPlus, faBullseye, faPhone, faIdCard, faBriefcase, faDownload
 } from '@fortawesome/free-solid-svg-icons';
+import * as XLSX from 'xlsx';
 import api from '../services/api';
 import './Usuarios.css';
 import './Funnel.css';
 
 const ESTADOS = [
-    { key: 'Identificada', label: 'Identificada', color: 'estado-identificada' },
+    { key: 'Identificada',        label: 'Identificada',        color: 'estado-identificada' },
     { key: 'Propuesta Entregada', label: 'Propuesta Entregada', color: 'estado-propuesta' },
-    { key: 'Negociación', label: 'Negociación', color: 'estado-negociacion' },
-    { key: 'Negociada Aprobada', label: 'Negociada Aprobada', color: 'estado-aprobada' },
+    { key: 'Negociación',         label: 'Negociación',         color: 'estado-negociacion' },
+    { key: 'Negociada Aprobada',  label: 'Negociada Aprobada',  color: 'estado-aprobada' },
     { key: 'Negociada Rechazada', label: 'Negociada Rechazada', color: 'estado-rechazada' },
 ];
 
 const TABS_FUNNEL = [
-    { key: 'Identificada', label: 'Identificada', num: 1 },
+    { key: 'Identificada',        label: 'Identificada',    num: 1 },
     { key: 'Propuesta Entregada', label: 'Prop. Entregada', num: 2 },
-    { key: 'Negociación', label: 'Negociación', num: 3 },
-    { key: 'Cerrada', label: 'Cerrada', num: 4 },
+    { key: 'Negociación',         label: 'Negociación',     num: 3 },
+    { key: 'Cerrada',             label: 'Cerrada',         num: 4 },
 ];
 
 const ESTADOS_OPO_COLORS = {
-    'Identificada': { bg: '#ede7f6', text: '#4527a0' },
+    'Identificada':        { bg: '#ede7f6', text: '#4527a0' },
     'Propuesta Entregada': { bg: '#fff8e1', text: '#f57f17' },
-    'Negociación': { bg: '#e8f5e9', text: '#2e7d32' },
-    'Negociada Aprobada': { bg: '#e3f2fd', text: '#1565c0' },
+    'Negociación':         { bg: '#e8f5e9', text: '#2e7d32' },
+    'Negociada Aprobada':  { bg: '#e3f2fd', text: '#1565c0' },
     'Negociada Rechazada': { bg: '#fce8e6', text: '#c62828' },
 };
 
@@ -66,31 +67,131 @@ const DiasCell = ({ fecha }) => {
     return <span className="dias-badge dias-limbo">+{Math.abs(dias)}d</span>;
 };
 
-// ── Función descargar funnel ──────────────────────────────────────────────────
-const handleDescargar = async () => {
+// ── Descarga Excel con SheetJS (frontend) ────────────────────────────────────
+const generarExcelFunnel = async (endpoint, params, setDescargando) => {
     setDescargando(true);
     try {
-        const params = new URLSearchParams({
-            busqueda, segmento,
-            lineas_min: lineasMin,
-            lineas_max: lineasMax,
-            estados: estadosSel.join(','),
-            asesor: filtroAsesor,
-        });
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/export-funnel?${params}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Error al descargar');
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `funnel_${new Date().toISOString().split('T')[0]}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        // Cargar TODAS las fichas sin paginación
+        let todasLasFichas = [];
+        let page = 1;
+        let totalPages = 1;
+
+        do {
+            const res = await api.get(endpoint, {
+                params: { ...params, page, limit: 200 },
+            });
+            todasLasFichas = [...todasLasFichas, ...(res.data.fichas || [])];
+            totalPages = res.data.totalPages || 1;
+            page++;
+        } while (page <= totalPages);
+
+        // ── Hoja 1: Funnel principal ──────────────────────────────────────────
+        const filasFunnel = [];
+        for (const f of todasLasFichas) {
+            const opos = f.oportunidades || [];
+            if (opos.length === 0) {
+                filasFunnel.push({
+                    'RUC': f.ruc,
+                    'Razón Social': f.razon_social,
+                    'Asesor': f.asesor?.id_asesor?.nombre_user || '—',
+                    'Segmento': f.segmento || '—',
+                    'Total Líneas': f.total_lineas || 0,
+                    'Último Contacto': fmt(f.fechas?.fecha_ultimo_contacto),
+                    'Título Oportunidad': '—',
+                    'Producto': '—',
+                    'Cantidad': '',
+                    'Cargo Fijo': '',
+                    'Estado Oportunidad': '—',
+                    'Sustento': '—',
+                    'Fecha Creación': '—',
+                    'Fecha Cierre Esp.': '—',
+                    'Contacto Nombre': '—',
+                    'Contacto Teléfono': '—',
+                    'Contacto DNI': '—',
+                    'Entel': '',
+                    'Claro': '',
+                    'Movistar': '',
+                    'Otros': '',
+                    'Total Op.': '',
+                    'Comentario': '—',
+                });
+            } else {
+                for (const opo of opos) {
+                    filasFunnel.push({
+                        'RUC': f.ruc,
+                        'Razón Social': f.razon_social,
+                        'Asesor': f.asesor?.id_asesor?.nombre_user || '—',
+                        'Segmento': f.segmento || '—',
+                        'Total Líneas': f.total_lineas || 0,
+                        'Último Contacto': fmt(f.fechas?.fecha_ultimo_contacto),
+                        'Título Oportunidad': opo.titulo || '—',
+                        'Producto': opo.producto || '—',
+                        'Cantidad': opo.cantidad || 0,
+                        'Cargo Fijo': opo.cargo_fijo || 0,
+                        'Estado Oportunidad': opo.estado || '—',
+                        'Sustento': opo.sustento ? 'Sí' : 'No',
+                        'Fecha Creación': fmt(opo.fecha_creacion),
+                        'Fecha Cierre Esp.': fmt(opo.fecha_cierre_esperada),
+                        'Contacto Nombre': opo.contacto?.nombre || '—',
+                        'Contacto Teléfono': opo.contacto?.telefono || '—',
+                        'Contacto DNI': opo.contacto?.dni || '—',
+                        'Entel': opo.operadores?.entel || 0,
+                        'Claro': opo.operadores?.claro || 0,
+                        'Movistar': opo.operadores?.movistar || 0,
+                        'Otros': opo.operadores?.otros || 0,
+                        'Total Op.': opo.operadores?.total || 0,
+                        'Comentario': opo.comentario || '—',
+                    });
+                }
+            }
+        }
+
+        // ── Hoja 2: Interacciones ─────────────────────────────────────────────
+        const filasInteracciones = [];
+        for (const f of todasLasFichas) {
+            for (const inter of (f.interacciones || [])) {
+                filasInteracciones.push({
+                    'RUC': f.ruc,
+                    'Razón Social': f.razon_social,
+                    'Asesor': f.asesor?.id_asesor?.nombre_user || '—',
+                    'Fecha': fmt(inter.fecha),
+                    'Tipo': inter.tipo || '—',
+                    'Comentario': inter.comentario || '—',
+                    'Contacto Nombre': inter.contacto?.nombre || '—',
+                    'Contacto Teléfono': inter.contacto?.telefono || '—',
+                    'Contacto DNI': inter.contacto?.dni || '—',
+                    'Registrado por': inter.agregado_por?.nombre || '—',
+                });
+            }
+        }
+
+        // ── Generar workbook ──────────────────────────────────────────────────
+        const wb = XLSX.utils.book_new();
+
+        const wsFunnel = XLSX.utils.json_to_sheet(filasFunnel);
+        XLSX.utils.book_append_sheet(wb, wsFunnel, 'Funnel');
+
+        const wsInteracciones = XLSX.utils.json_to_sheet(filasInteracciones);
+        XLSX.utils.book_append_sheet(wb, wsInteracciones, 'Interacciones');
+
+        // Ajustar ancho de columnas automáticamente
+        const autoWidth = (ws, data) => {
+            if (!data.length) return;
+            const cols = Object.keys(data[0]).map(key => ({
+                wch: Math.max(key.length, ...data.map(r => String(r[key] || '').length))
+            }));
+            ws['!cols'] = cols;
+        };
+        autoWidth(wsFunnel, filasFunnel);
+        autoWidth(wsInteracciones, filasInteracciones);
+
+        // Descargar
+        const fecha = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `funnel_${fecha}.xlsx`);
+
     } catch (err) {
-        alert('Error al descargar el funnel');
+        console.error(err);
+        alert('Error al generar el Excel');
     } finally {
         setDescargando(false);
     }
@@ -103,24 +204,25 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
     const [tabActivo, setTabActivo] = useState(tabInicial);
     const [resultadoCierre, setResultadoCierre] = useState(
         oportunidad.estado === 'Negociada Aprobada' ? 'Aprobada' :
-            oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
+        oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
     );
     const [form, setForm] = useState({
-        contacto_nombre: oportunidad.contacto?.nombre || '',
+        contacto_nombre:   oportunidad.contacto?.nombre   || '',
         contacto_telefono: oportunidad.contacto?.telefono || '',
-        contacto_dni: oportunidad.contacto?.dni || '',
-        titulo: oportunidad.titulo || '',
-        producto: oportunidad.producto || '',
-        cantidad: oportunidad.cantidad || '',
-        cargo_fijo: oportunidad.cargo_fijo || '',
-        sustento: oportunidad.sustento || false,
-        comentario: oportunidad.comentario || '',
-        fecha_cierre_esperada: oportunidad.fecha_cierre_esperada ? new Date(oportunidad.fecha_cierre_esperada).toISOString().split('T')[0] : '',
-        entel: oportunidad.operadores?.entel || '',
-        claro: oportunidad.operadores?.claro || '',
+        contacto_dni:      oportunidad.contacto?.dni      || '',
+        titulo:      oportunidad.titulo    || '',
+        producto:    oportunidad.producto  || '',
+        cantidad:    oportunidad.cantidad  || '',
+        cargo_fijo:  oportunidad.cargo_fijo || '',
+        sustento:    oportunidad.sustento  || false,
+        comentario:  oportunidad.comentario || '',
+        fecha_cierre_esperada: oportunidad.fecha_cierre_esperada
+            ? new Date(oportunidad.fecha_cierre_esperada).toISOString().split('T')[0] : '',
+        entel:    oportunidad.operadores?.entel    || '',
+        claro:    oportunidad.operadores?.claro    || '',
         movistar: oportunidad.operadores?.movistar || '',
-        otros: oportunidad.operadores?.otros || '',
-        total: oportunidad.operadores?.total || '',
+        otros:    oportunidad.operadores?.otros    || '',
+        total:    oportunidad.operadores?.total    || '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -133,16 +235,20 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
         try {
             await api.put(`/ficha-gestion/${ficha._id}/oportunidades/${oportunidad._id}`, {
                 contacto: {
-                    nombre: form.contacto_nombre || null,
+                    nombre:   form.contacto_nombre   || null,
                     telefono: form.contacto_telefono || null,
-                    dni: form.contacto_dni || null,
+                    dni:      form.contacto_dni      || null,
                 },
                 titulo: form.titulo, producto: form.producto,
                 cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
                 sustento: form.sustento, comentario: form.comentario || null,
                 fecha_cierre_esperada: form.fecha_cierre_esperada || null,
                 estado: estadoFinal,
-                operadores: { entel: Number(form.entel) || 0, claro: Number(form.claro) || 0, movistar: Number(form.movistar) || 0, otros: Number(form.otros) || 0, total: Number(form.total) || 0 },
+                operadores: {
+                    entel: Number(form.entel) || 0, claro: Number(form.claro) || 0,
+                    movistar: Number(form.movistar) || 0, otros: Number(form.otros) || 0,
+                    total: Number(form.total) || 0,
+                },
             });
             onGuardado(); onClose();
         } catch { setError('Error al guardar'); }
@@ -261,15 +367,19 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
         try {
             await api.post(`/ficha-gestion/${ficha._id}/oportunidades`, {
                 contacto: {
-                    nombre: form.contacto_nombre || null,
+                    nombre:   form.contacto_nombre   || null,
                     telefono: form.contacto_telefono || null,
-                    dni: form.contacto_dni || null,
+                    dni:      form.contacto_dni      || null,
                 },
                 titulo: form.titulo, producto: form.producto,
                 cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
                 fecha_cierre_esperada: form.fecha_cierre_esperada || null,
                 sustento: form.sustento, comentario: form.comentario || null,
-                operadores: { entel: Number(form.entel) || 0, claro: Number(form.claro) || 0, movistar: Number(form.movistar) || 0, otros: Number(form.otros) || 0, total: Number(form.total) || 0 },
+                operadores: {
+                    entel: Number(form.entel) || 0, claro: Number(form.claro) || 0,
+                    movistar: Number(form.movistar) || 0, otros: Number(form.otros) || 0,
+                    total: Number(form.total) || 0,
+                },
             });
             onGuardado(); onClose();
         } catch { setError('Error al agregar oportunidad'); }
@@ -550,16 +660,12 @@ const Funnel = ({ esSupervisor = false }) => {
         );
     };
 
-    const handleDescargar = async () => {
-        setDescargando(true);
-        await descargarFunnel(endpoint, {
-            busqueda, segmento,
-            lineas_min: lineasMin,
-            lineas_max: lineasMax,
-            estados: estadosSel.join(','),
-            asesor: filtroAsesor,
-        });
-        setDescargando(false);
+    const handleDescargar = () => {
+        generarExcelFunnel(
+            endpoint,
+            { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor },
+            setDescargando
+        );
     };
 
     return (
@@ -572,7 +678,7 @@ const Funnel = ({ esSupervisor = false }) => {
                 {esSupervisor && (
                     <button className="btn-primary" style={{ fontSize: 12 }} onClick={handleDescargar} disabled={descargando}>
                         <FontAwesomeIcon icon={faDownload} style={{ marginRight: 6 }} />
-                        {descargando ? 'Descargando...' : 'Descargar Funnel'}
+                        {descargando ? 'Generando...' : 'Descargar Funnel'}
                     </button>
                 )}
             </div>
@@ -611,62 +717,62 @@ const Funnel = ({ esSupervisor = false }) => {
             <div className="table-container">
                 {loading ? <p style={{ padding: 20 }}>Cargando...</p>
                     : fichas.length === 0 ? <p style={{ padding: 20, color: '#999' }}>No se encontraron oportunidades.</p>
-                        : (
-                            <>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Último contacto</th>
-                                            <th>RUC</th>
-                                            <th>Razón Social</th>
-                                            {esSupervisor && <th>Asesor</th>}
-                                            <th>Segmento</th>
-                                            <th>Líneas</th>
-                                            <th>Días</th>
-                                            <th>Estado oportunidad</th>
-                                            <th>Oportunidades</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {fichas.map(f => {
-                                            const opo = opoMasAvanzada(f);
-                                            return (
-                                                <tr key={f._id}>
-                                                    <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
-                                                    <td style={{ fontWeight: 600, color: '#3949ab' }}>{f.ruc}</td>
-                                                    <td>{f.razon_social}</td>
-                                                    {esSupervisor && <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>}
-                                                    <td>{f.segmento || '—'}</td>
-                                                    <td>{f.total_lineas || '—'}</td>
-                                                    <td><DiasCell fecha={f.fechas?.fecha_ultimo_contacto} /></td>
-                                                    <td><EstadoBadge estado={opo?.estado} /></td>
-                                                    <td>
-                                                        <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
-                                                            {f.oportunidades?.length || 0}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
-                                                            <FontAwesomeIcon icon={faPen} /> Editar
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                                {totalPages > 1 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
-                                        <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} empresas</span>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
-                                            <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
-                                        </div>
+                    : (
+                        <>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Último contacto</th>
+                                        <th>RUC</th>
+                                        <th>Razón Social</th>
+                                        {esSupervisor && <th>Asesor</th>}
+                                        <th>Segmento</th>
+                                        <th>Líneas</th>
+                                        <th>Días</th>
+                                        <th>Estado oportunidad</th>
+                                        <th>Oportunidades</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {fichas.map(f => {
+                                        const opo = opoMasAvanzada(f);
+                                        return (
+                                            <tr key={f._id}>
+                                                <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
+                                                <td style={{ fontWeight: 600, color: '#3949ab' }}>{f.ruc}</td>
+                                                <td>{f.razon_social}</td>
+                                                {esSupervisor && <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>}
+                                                <td>{f.segmento || '—'}</td>
+                                                <td>{f.total_lineas || '—'}</td>
+                                                <td><DiasCell fecha={f.fechas?.fecha_ultimo_contacto} /></td>
+                                                <td>{opo ? <EstadoBadge estado={opo.estado} /> : <span style={{ color: '#999', fontSize: 12 }}>Sin oportunidades</span>}</td>
+                                                <td>
+                                                    <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+                                                        {f.oportunidades?.length || 0}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
+                                                        <FontAwesomeIcon icon={faPen} /> Editar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
+                                    <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} empresas</span>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
+                                        <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
                                     </div>
-                                )}
-                            </>
-                        )}
+                                </div>
+                            )}
+                        </>
+                    )}
             </div>
 
             {modalFicha && (

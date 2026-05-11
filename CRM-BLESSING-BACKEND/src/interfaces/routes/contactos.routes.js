@@ -17,29 +17,7 @@ const clean = (v) => {
     return ['N/A', '#N/A', 'null', 'undefined', '0', ''].includes(s) ? null : s;
 };
 
-// Helper — importar datos (tel/correo) de un contacto
-const importarDatos = async (ModelDato, id_contacto, ruc, fila, maxTel = 5, maxCorreo = 3) => {
-    for (let i = 1; i <= maxTel; i++) {
-        const val = clean(fila[`tel_${i}`]);
-        if (val) {
-            await ModelDato.updateOne(
-                { id_contacto, tipo: 'telefono', valor: val },
-                { $setOnInsert: { id_contacto, ruc, tipo: 'telefono', valor: val } },
-                { upsert: true }
-            );
-        }
-    }
-    for (let i = 1; i <= maxCorreo; i++) {
-        const val = clean(fila[`correo_${i}`]);
-        if (val) {
-            await ModelDato.updateOne(
-                { id_contacto, tipo: 'correo', valor: val },
-                { $setOnInsert: { id_contacto, ruc, tipo: 'correo', valor: val } },
-                { upsert: true }
-            );
-        }
-    }
-};
+const CHUNK_SIZE = 500;
 
 // ── POST - Importar Contactos Autorizados ─────────────────────────────────
 router.post('/autorizados/importar', verifyToken, verifyRole('sistemas'), fu, async (req, res) => {
@@ -51,31 +29,82 @@ router.post('/autorizados/importar', verifyToken, verifyRole('sistemas'), fu, as
 
         let insertados = 0, actualizados = 0, errores = [];
 
-        for (const [i, f] of filas.entries()) {
-            const ruc    = clean(f['ruc']);
-            const nombre = clean(f['nombre']);
-            if (!ruc || !nombre) { errores.push({ fila: i + 2, error: 'ruc y nombre son obligatorios' }); continue; }
+        // Procesar en chunks de 500
+        for (let chunk = 0; chunk < filas.length; chunk += CHUNK_SIZE) {
+            const lote = filas.slice(chunk, chunk + CHUNK_SIZE);
 
-            try {
-                const datos = {
-                    cargo: clean(f['cargo']),
-                    dni:   clean(f['dni']),
-                };
+            // 1. bulkWrite contactos
+            const opsContactos = [];
+            const filasValidas = [];
 
-                const result = await ContactoAutorizado.findOneAndUpdate(
-                    { ruc, nombre },
-                    { $set: datos, $setOnInsert: { ruc, nombre } },
-                    { upsert: true, new: true, rawResult: true }
-                );
+            for (const [i, f] of lote.entries()) {
+                const ruc    = clean(f['ruc']);
+                const nombre = clean(f['nombre']);
+                if (!ruc || !nombre) {
+                    errores.push({ fila: chunk + i + 2, error: 'ruc y nombre son obligatorios' });
+                    continue;
+                }
+                filasValidas.push({ f, ruc, nombre });
+                opsContactos.push({
+                    updateOne: {
+                        filter: { ruc, nombre },
+                        update: {
+                            $set: { cargo: clean(f['cargo']), dni: clean(f['dni']) },
+                            $setOnInsert: { ruc, nombre },
+                        },
+                        upsert: true,
+                    }
+                });
+            }
 
-                if (result.lastErrorObject?.upserted) insertados++;
-                else actualizados++;
+            if (opsContactos.length === 0) continue;
+            const resContactos = await ContactoAutorizado.bulkWrite(opsContactos, { ordered: false });
+            insertados += resContactos.upsertedCount || 0;
+            actualizados += resContactos.modifiedCount || 0;
 
-                // FIX: buscar el contacto para asegurar _id correcto
-                const contacto = await ContactoAutorizado.findOne({ ruc, nombre });
-                if (contacto) await importarDatos(ContactoAutorizadoDato, contacto._id, ruc, f);
+            // 2. Obtener _ids de los contactos del lote
+            const rucsNombres = filasValidas.map(({ ruc, nombre }) => ({ ruc, nombre }));
+            const contactosDB = await ContactoAutorizado.find({
+                $or: rucsNombres
+            }).select('_id ruc nombre');
 
-            } catch (err) { errores.push({ fila: i + 2, error: err.message }); }
+            // Mapa ruc+nombre → _id
+            const mapaId = {};
+            for (const c of contactosDB) {
+                mapaId[`${c.ruc}__${c.nombre}`] = c._id;
+            }
+
+            // 3. bulkWrite datos (tel/correo)
+            const opsDatos = [];
+            for (const { f, ruc, nombre } of filasValidas) {
+                const id_contacto = mapaId[`${ruc}__${nombre}`];
+                if (!id_contacto) continue;
+
+                for (let i = 1; i <= 5; i++) {
+                    const val = clean(f[`tel_${i}`]);
+                    if (val) opsDatos.push({
+                        updateOne: {
+                            filter: { id_contacto, tipo: 'telefono', valor: val },
+                            update: { $setOnInsert: { id_contacto, ruc, tipo: 'telefono', valor: val } },
+                            upsert: true,
+                        }
+                    });
+                }
+                for (let i = 1; i <= 3; i++) {
+                    const val = clean(f[`correo_${i}`]);
+                    if (val) opsDatos.push({
+                        updateOne: {
+                            filter: { id_contacto, tipo: 'correo', valor: val },
+                            update: { $setOnInsert: { id_contacto, ruc, tipo: 'correo', valor: val } },
+                            upsert: true,
+                        }
+                    });
+                }
+            }
+
+            if (opsDatos.length > 0) {
+                await ContactoAutorizadoDato.bulkWrite(opsDatos, { ordered: false });
+            }
         }
 
         res.json({ message: 'Contactos autorizados importados', insertados, actualizados, errores: errores.slice(0, 20) });
@@ -92,32 +121,79 @@ router.post('/rrll/importar', verifyToken, verifyRole('sistemas'), fu, async (re
 
         let insertados = 0, actualizados = 0, errores = [];
 
-        for (const [i, f] of filas.entries()) {
-            const ruc    = clean(f['ruc']);
-            const nombre = clean(f['nombre'] ?? f['NOMBRE_RRLL']);
-            if (!ruc || !nombre) { errores.push({ fila: i + 2, error: 'ruc y nombre son obligatorios' }); continue; }
+        for (let chunk = 0; chunk < filas.length; chunk += CHUNK_SIZE) {
+            const lote = filas.slice(chunk, chunk + CHUNK_SIZE);
 
-            try {
-                const datos = {
-                    cargo:    clean(f['cargo']    ?? f['CARGO_RRLL']),
-                    tipo_doc: clean(f['tipo_doc'] ?? f['TIPO_DOC_RRLL']),
-                    nr_doc:   clean(f['nr_doc']   ?? f['NR_DOC_RRLL']),
-                };
+            const opsContactos = [];
+            const filasValidas = [];
 
-                const result = await ContactoRRLL.findOneAndUpdate(
-                    { ruc, nombre },
-                    { $set: datos, $setOnInsert: { ruc, nombre } },
-                    { upsert: true, new: true, rawResult: true }
-                );
+            for (const [i, f] of lote.entries()) {
+                const ruc    = clean(f['ruc']);
+                const nombre = clean(f['nombre'] ?? f['NOMBRE_RRLL']);
+                if (!ruc || !nombre) {
+                    errores.push({ fila: chunk + i + 2, error: 'ruc y nombre son obligatorios' });
+                    continue;
+                }
+                filasValidas.push({ f, ruc, nombre });
+                opsContactos.push({
+                    updateOne: {
+                        filter: { ruc, nombre },
+                        update: {
+                            $set: {
+                                cargo:    clean(f['cargo']    ?? f['CARGO_RRLL']),
+                                tipo_doc: clean(f['tipo_doc'] ?? f['TIPO_DOC_RRLL']),
+                                nr_doc:   clean(f['nr_doc']   ?? f['NR_DOC_RRLL']),
+                            },
+                            $setOnInsert: { ruc, nombre },
+                        },
+                        upsert: true,
+                    }
+                });
+            }
 
-                if (result.lastErrorObject?.upserted) insertados++;
-                else actualizados++;
+            if (opsContactos.length === 0) continue;
+            const resContactos = await ContactoRRLL.bulkWrite(opsContactos, { ordered: false });
+            insertados += resContactos.upsertedCount || 0;
+            actualizados += resContactos.modifiedCount || 0;
 
-                // FIX: buscar el contacto para asegurar _id correcto
-                const contacto = await ContactoRRLL.findOne({ ruc, nombre });
-                if (contacto) await importarDatos(ContactoRRLLDato, contacto._id, ruc, f);
+            const rucsNombres = filasValidas.map(({ ruc, nombre }) => ({ ruc, nombre }));
+            const contactosDB = await ContactoRRLL.find({ $or: rucsNombres }).select('_id ruc nombre');
 
-            } catch (err) { errores.push({ fila: i + 2, error: err.message }); }
+            const mapaId = {};
+            for (const c of contactosDB) {
+                mapaId[`${c.ruc}__${c.nombre}`] = c._id;
+            }
+
+            const opsDatos = [];
+            for (const { f, ruc, nombre } of filasValidas) {
+                const id_contacto = mapaId[`${ruc}__${nombre}`];
+                if (!id_contacto) continue;
+
+                for (let i = 1; i <= 5; i++) {
+                    const val = clean(f[`tel_${i}`]);
+                    if (val) opsDatos.push({
+                        updateOne: {
+                            filter: { id_contacto, tipo: 'telefono', valor: val },
+                            update: { $setOnInsert: { id_contacto, ruc, tipo: 'telefono', valor: val } },
+                            upsert: true,
+                        }
+                    });
+                }
+                for (let i = 1; i <= 3; i++) {
+                    const val = clean(f[`correo_${i}`]);
+                    if (val) opsDatos.push({
+                        updateOne: {
+                            filter: { id_contacto, tipo: 'correo', valor: val },
+                            update: { $setOnInsert: { id_contacto, ruc, tipo: 'correo', valor: val } },
+                            upsert: true,
+                        }
+                    });
+                }
+            }
+
+            if (opsDatos.length > 0) {
+                await ContactoRRLLDato.bulkWrite(opsDatos, { ordered: false });
+            }
         }
 
         res.json({ message: 'Contactos RRLL importados', insertados, actualizados, errores: errores.slice(0, 20) });
@@ -168,7 +244,6 @@ router.post('/autorizados/agregar', verifyToken, async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // FIX: buscar contacto para asegurar _id correcto
         const contacto = await ContactoAutorizado.findOne({ ruc, nombre });
 
         if (telefonos?.length) {

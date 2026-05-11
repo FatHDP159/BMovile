@@ -703,13 +703,18 @@ const Funnel = ({ esSupervisor = false }) => {
                     —
                     <input type="number" className="filter-select" placeholder="Máx" value={lineasMax} onChange={e => setLineasMax(e.target.value)} style={{ width: 70 }} />
                 </div>
+            </div>
+
+            {/* Segunda fila — filtro de fechas */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: '#555', fontWeight: 500 }}>Fecha creación oportunidad:</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555' }}>
-                    Desde:
+                    <span>Desde</span>
                     <input type="date" className="filter-select" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
-                    Hasta:
+                    <span>Hasta</span>
                     <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
                     {(fechaDesde || fechaHasta) && (
-                        <button className="btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => { setFechaDesde(''); setFechaHasta(''); }}>✕</button>
+                        <button className="btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => { setFechaDesde(''); setFechaHasta(''); }}>✕ Limpiar</button>
                     )}
                 </div>
             </div>

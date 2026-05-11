@@ -622,6 +622,8 @@ const Funnel = ({ esSupervisor = false }) => {
     const [asesores, setAsesores] = useState([]);
     const [filtroAsesor, setFiltroAsesor] = useState('');
     const searchTimeout = useRef();
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState('');
 
     const endpoint = esSupervisor ? '/ficha-gestion/funnel-supervisor' : '/ficha-gestion/funnel';
 
@@ -635,7 +637,7 @@ const Funnel = ({ esSupervisor = false }) => {
         setLoading(true);
         try {
             const res = await api.get(endpoint, {
-                params: { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor, page: p, limit: 50 },
+                params: { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor, fecha_desde: fechaDesde, fecha_hasta: fechaHasta, page: p, limit: 50 },
             });
             setFichas(res.data.fichas);
             setTotal(res.data.total);
@@ -643,12 +645,12 @@ const Funnel = ({ esSupervisor = false }) => {
             setPage(p);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
-    }, [busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor]);
+    },[busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor, fechaDesde, fechaHasta]);
 
     useEffect(() => {
         clearTimeout(searchTimeout.current);
         searchTimeout.current = setTimeout(() => cargar(1), 400);
-    }, [busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor]);
+    },[busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor, fechaDesde, fechaHasta]);
 
     const toggleEstado = (key) => setEstadosSel(prev => prev.includes(key) ? prev.filter(e => e !== key) : [...prev, key]);
 
@@ -661,12 +663,12 @@ const Funnel = ({ esSupervisor = false }) => {
     };
 
     const handleDescargar = () => {
-        generarExcelFunnel(
-            endpoint,
-            { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor },
-            setDescargando
-        );
-    };
+    generarExcelFunnel(
+        endpoint,
+        { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor, fecha_desde: fechaDesde, fecha_hasta: fechaHasta },
+        setDescargando
+    );
+};
 
     return (
         <div>
@@ -700,6 +702,15 @@ const Funnel = ({ esSupervisor = false }) => {
                     <input type="number" className="filter-select" placeholder="Mín" value={lineasMin} onChange={e => setLineasMin(e.target.value)} style={{ width: 70 }} />
                     —
                     <input type="number" className="filter-select" placeholder="Máx" value={lineasMax} onChange={e => setLineasMax(e.target.value)} style={{ width: 70 }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555' }}>
+                    Desde:
+                    <input type="date" className="filter-select" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
+                    Hasta:
+                    <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
+                    {(fechaDesde || fechaHasta) && (
+                        <button className="btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => { setFechaDesde(''); setFechaHasta(''); }}>✕</button>
+                    )}
                 </div>
             </div>
 

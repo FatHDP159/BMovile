@@ -188,6 +188,15 @@ const fichaGestionRepository = {
         if (estados && estados.length > 0) {
             filtro['oportunidades.estado'] = { $in: estados };
         }
+        if (fecha_desde || fecha_hasta) {
+            filtro['oportunidades.fecha_creacion'] = {};
+            if (fecha_desde) filtro['oportunidades.fecha_creacion'].$gte = new Date(fecha_desde);
+            if (fecha_hasta) {
+                const hasta = new Date(fecha_hasta);
+                hasta.setHours(23, 59, 59, 999);
+                filtro['oportunidades.fecha_creacion'].$lte = hasta;
+            }
+        }
 
         const skip = (page - 1) * limit;
         const total = await FichaGestion.countDocuments(filtro);

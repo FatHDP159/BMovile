@@ -90,10 +90,11 @@ router.get('/mis-fichas', verifyToken, verifyRole('asesor'), async (req, res) =>
 // ── GET /funnel — Fichas con oportunidades (asesor) ─────────────────────────
 router.get('/funnel', verifyToken, verifyRole('asesor'), async (req, res) => {
     try {
-        const { busqueda, estados, segmento, lineas_min, lineas_max, page, limit } = req.query;
+        const { busqueda, estados, segmento, lineas_min, lineas_max, fecha_desde, fecha_hasta, page, limit } = req.query;
         const resultado = await fichaGestionRepository.findFunnel({
             id_asesor: req.user.id,
             busqueda, segmento, lineas_min, lineas_max,
+            fecha_desde, fecha_hasta,
             estados: estados ? (Array.isArray(estados) ? estados : estados.split(',')) : [],
             page: Number(page) || 1,
             limit: Number(limit) || 50,
@@ -107,10 +108,11 @@ router.get('/funnel', verifyToken, verifyRole('asesor'), async (req, res) => {
 // ── GET /funnel-supervisor — Funnel todos los asesores ──────────────────────
 router.get('/funnel-supervisor', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, res) => {
     try {
-        const { busqueda, estados, segmento, lineas_min, lineas_max, asesor, page, limit } = req.query;
+        const { busqueda, estados, segmento, lineas_min, lineas_max, fecha_desde, fecha_hasta, asesor, page, limit } = req.query;
         const resultado = await fichaGestionRepository.findFunnel({
             id_asesor: asesor || null,
             busqueda, segmento, lineas_min, lineas_max,
+            fecha_desde, fecha_hasta,
             estados: estados ? (Array.isArray(estados) ? estados : estados.split(',')) : [],
             page: Number(page) || 1,
             limit: Number(limit) || 50,
@@ -120,7 +122,6 @@ router.get('/funnel-supervisor', verifyToken, verifyRole('supervisor', 'sistemas
         res.status(500).json({ message: 'Error al cargar funnel', error: error.message });
     }
 });
-
 // ── GET / — Todas las fichas (supervisor/sistemas) ──────────────────────────
 router.get('/', verifyToken, verifyRole('supervisor', 'sistemas'), async (req, res) => {
     try {

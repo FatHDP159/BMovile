@@ -172,8 +172,8 @@ const fichaGestionRepository = {
     },
 
     // ── Funnel — solo fichas con oportunidades activas ────────────────────────
-    findFunnel: async ({ id_asesor, busqueda, estados, segmento, lineas_min, lineas_max, page = 1, limit = 50 }) => {
-        const filtro = { activa: true, 'oportunidades.0': { $exists: true } };
+    // ✅ Así debe quedar
+findFunnel: async ({ id_asesor, busqueda, estados, segmento, lineas_min, lineas_max, fecha_desde, fecha_hasta, page = 1, limit = 50 }) => {        const filtro = { activa: true, 'oportunidades.0': { $exists: true } };
         if (id_asesor) filtro['asesor.id_asesor'] = id_asesor;
         if (busqueda) filtro.$or = [
             { ruc: { $regex: busqueda, $options: 'i' } },

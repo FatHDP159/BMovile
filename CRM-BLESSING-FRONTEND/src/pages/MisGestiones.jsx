@@ -6,24 +6,25 @@ import {
     faHistory, faBullseye
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
+import { ModalContactos } from './Historial';
 import './Usuarios.css';
 import './MisGestiones.css';
 
 const TIPOS_INTERACCION = [
-    { key: 'interesado',                  label: 'Cliente Interesado',    color: 'tipo-interesado' },
-    { key: 'sin_contacto',                label: 'Sin Contacto',          color: 'tipo-sin-contacto' },
-    { key: 'con_deuda',                   label: 'Con Deuda',             color: 'tipo-deuda' },
-    { key: 'no_contesta',                 label: 'No Contesta',           color: 'tipo-no-contesta' },
-    { key: 'cliente_claro',               label: 'Cliente Claro',         color: 'tipo-claro' },
-    { key: 'cliente_no_interesado',       label: 'No Interesado',         color: 'tipo-no-interesado' },
-    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido',       color: 'tipo-sustento-valido' },
+    { key: 'interesado', label: 'Cliente Interesado', color: 'tipo-interesado' },
+    { key: 'sin_contacto', label: 'Sin Contacto', color: 'tipo-sin-contacto' },
+    { key: 'con_deuda', label: 'Con Deuda', color: 'tipo-deuda' },
+    { key: 'no_contesta', label: 'No Contesta', color: 'tipo-no-contesta' },
+    { key: 'cliente_claro', label: 'Cliente Claro', color: 'tipo-claro' },
+    { key: 'cliente_no_interesado', label: 'No Interesado', color: 'tipo-no-interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido', color: 'tipo-sustento-valido' },
 ];
 
 const ESTADOS_OPO = [
-    { key: 'Identificada',        color: '#ede7f6', text: '#4527a0' },
+    { key: 'Identificada', color: '#ede7f6', text: '#4527a0' },
     { key: 'Propuesta Entregada', color: '#fff8e1', text: '#f57f17' },
-    { key: 'Negociación',         color: '#e8f5e9', text: '#2e7d32' },
-    { key: 'Negociada Aprobada',  color: '#e3f2fd', text: '#1565c0' },
+    { key: 'Negociación', color: '#e8f5e9', text: '#2e7d32' },
+    { key: 'Negociada Aprobada', color: '#e3f2fd', text: '#1565c0' },
     { key: 'Negociada Rechazada', color: '#fce8e6', text: '#c62828' },
 ];
 
@@ -106,7 +107,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
     return (
         <div className="modal-overlay">
             <div className="modal" style={{ width: '90vw', maxWidth: 680, maxHeight: '92vh', overflowY: 'auto' }}>
-                {/* Header */}
                 <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 12, color: '#888' }}>{ficha.ruc}</div>
                     <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e' }}>{ficha.razon_social}</div>
@@ -118,7 +118,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
                     </div>
                 </div>
 
-                {/* Tabs */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: '2px solid #f0f0f0' }}>
                     <button onClick={() => setTab('interacciones')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: tab === 'interacciones' ? 700 : 400, borderBottom: tab === 'interacciones' ? '2px solid #1D2558' : '2px solid transparent', color: tab === 'interacciones' ? '#1D2558' : '#666' }}>
                         <FontAwesomeIcon icon={faHistory} style={{ marginRight: 6 }} />Interacciones ({ficha.interacciones?.length || 0})
@@ -128,7 +127,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
                     </button>
                 </div>
 
-                {/* Tab Interacciones — solo lectura + editar tipo/comentario */}
                 {tab === 'interacciones' && (
                     <div>
                         {ficha.interacciones?.length === 0 ? (
@@ -141,11 +139,7 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
                                             <TipoBadge tipo={inter.tipo} />
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 <span style={{ fontSize: 11, color: '#888' }}>{fmt(inter.fecha)}</span>
-                                                <button
-                                                    className="btn-secondary"
-                                                    style={{ fontSize: 11, padding: '2px 8px' }}
-                                                    onClick={() => setEditandoInteraccion(inter)}
-                                                >
+                                                <button className="btn-secondary" style={{ fontSize: 11, padding: '2px 8px' }} onClick={() => setEditandoInteraccion(inter)}>
                                                     <FontAwesomeIcon icon={faPen} /> Editar
                                                 </button>
                                             </div>
@@ -170,7 +164,6 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
                     </div>
                 )}
 
-                {/* Tab Oportunidades — solo lectura */}
                 {tab === 'oportunidades' && (
                     <div>
                         {ficha.oportunidades?.length === 0 ? (
@@ -231,6 +224,7 @@ const MisGestiones = () => {
     const [busqueda, setBusqueda] = useState('');
     const [estadoFiltro, setEstadoFiltro] = useState('');
     const [modalFicha, setModalFicha] = useState(null);
+    const [modalContactos, setModalContactos] = useState(null);
     const searchTimeout = useRef();
 
     const cargar = useCallback(async (p = 1) => {
@@ -318,7 +312,15 @@ const MisGestiones = () => {
                                     const opo = opoMasAvanzada(f);
                                     return (
                                         <tr key={f._id}>
-                                            <td style={{ fontWeight: 600, color: '#3949ab' }}>{f.ruc}</td>
+                                            <td>
+                                                <button
+                                                    onClick={() => setModalContactos({ ruc: f.ruc, razon_social: f.razon_social })}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3949ab', fontWeight: 700, fontSize: 13, padding: 0, textDecoration: 'underline' }}
+                                                    title="Ver contactos"
+                                                >
+                                                    {f.ruc}
+                                                </button>
+                                            </td>
                                             <td>{f.razon_social}</td>
                                             <td>{f.segmento || '—'}</td>
                                             <td>{f.total_lineas || '—'}</td>
@@ -368,6 +370,13 @@ const MisGestiones = () => {
                     ficha={modalFicha}
                     onClose={() => setModalFicha(null)}
                     onGuardado={() => recargarFicha(modalFicha._id)}
+                />
+            )}
+            {modalContactos && (
+                <ModalContactos
+                    ruc={modalContactos.ruc}
+                    razon_social={modalContactos.razon_social}
+                    onClose={() => setModalContactos(null)}
                 />
             )}
         </div>

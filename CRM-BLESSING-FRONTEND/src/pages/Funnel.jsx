@@ -6,29 +6,30 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import * as XLSX from 'xlsx';
 import api from '../services/api';
+import { ModalContactos } from './Historial';
 import './Usuarios.css';
 import './Funnel.css';
 
 const ESTADOS = [
-    { key: 'Identificada',        label: 'Identificada',        color: 'estado-identificada' },
+    { key: 'Identificada', label: 'Identificada', color: 'estado-identificada' },
     { key: 'Propuesta Entregada', label: 'Propuesta Entregada', color: 'estado-propuesta' },
-    { key: 'Negociación',         label: 'Negociación',         color: 'estado-negociacion' },
-    { key: 'Negociada Aprobada',  label: 'Negociada Aprobada',  color: 'estado-aprobada' },
+    { key: 'Negociación', label: 'Negociación', color: 'estado-negociacion' },
+    { key: 'Negociada Aprobada', label: 'Negociada Aprobada', color: 'estado-aprobada' },
     { key: 'Negociada Rechazada', label: 'Negociada Rechazada', color: 'estado-rechazada' },
 ];
 
 const TABS_FUNNEL = [
-    { key: 'Identificada',        label: 'Identificada',    num: 1 },
+    { key: 'Identificada', label: 'Identificada', num: 1 },
     { key: 'Propuesta Entregada', label: 'Prop. Entregada', num: 2 },
-    { key: 'Negociación',         label: 'Negociación',     num: 3 },
-    { key: 'Cerrada',             label: 'Cerrada',         num: 4 },
+    { key: 'Negociación', label: 'Negociación', num: 3 },
+    { key: 'Cerrada', label: 'Cerrada', num: 4 },
 ];
 
 const ESTADOS_OPO_COLORS = {
-    'Identificada':        { bg: '#ede7f6', text: '#4527a0' },
+    'Identificada': { bg: '#ede7f6', text: '#4527a0' },
     'Propuesta Entregada': { bg: '#fff8e1', text: '#f57f17' },
-    'Negociación':         { bg: '#e8f5e9', text: '#2e7d32' },
-    'Negociada Aprobada':  { bg: '#e3f2fd', text: '#1565c0' },
+    'Negociación': { bg: '#e8f5e9', text: '#2e7d32' },
+    'Negociada Aprobada': { bg: '#e3f2fd', text: '#1565c0' },
     'Negociada Rechazada': { bg: '#fce8e6', text: '#c62828' },
 };
 
@@ -204,25 +205,25 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
     const [tabActivo, setTabActivo] = useState(tabInicial);
     const [resultadoCierre, setResultadoCierre] = useState(
         oportunidad.estado === 'Negociada Aprobada' ? 'Aprobada' :
-        oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
+            oportunidad.estado === 'Negociada Rechazada' ? 'Rechazada' : ''
     );
     const [form, setForm] = useState({
-        contacto_nombre:   oportunidad.contacto?.nombre   || '',
+        contacto_nombre: oportunidad.contacto?.nombre || '',
         contacto_telefono: oportunidad.contacto?.telefono || '',
-        contacto_dni:      oportunidad.contacto?.dni      || '',
-        titulo:      oportunidad.titulo    || '',
-        producto:    oportunidad.producto  || '',
-        cantidad:    oportunidad.cantidad  || '',
-        cargo_fijo:  oportunidad.cargo_fijo || '',
-        sustento:    oportunidad.sustento  || false,
-        comentario:  oportunidad.comentario || '',
+        contacto_dni: oportunidad.contacto?.dni || '',
+        titulo: oportunidad.titulo || '',
+        producto: oportunidad.producto || '',
+        cantidad: oportunidad.cantidad || '',
+        cargo_fijo: oportunidad.cargo_fijo || '',
+        sustento: oportunidad.sustento || false,
+        comentario: oportunidad.comentario || '',
         fecha_cierre_esperada: oportunidad.fecha_cierre_esperada
             ? new Date(oportunidad.fecha_cierre_esperada).toISOString().split('T')[0] : '',
-        entel:    oportunidad.operadores?.entel    || '',
-        claro:    oportunidad.operadores?.claro    || '',
+        entel: oportunidad.operadores?.entel || '',
+        claro: oportunidad.operadores?.claro || '',
         movistar: oportunidad.operadores?.movistar || '',
-        otros:    oportunidad.operadores?.otros    || '',
-        total:    oportunidad.operadores?.total    || '',
+        otros: oportunidad.operadores?.otros || '',
+        total: oportunidad.operadores?.total || '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -235,9 +236,9 @@ const ModalGestionarOpo = ({ ficha, oportunidad, onClose, onGuardado }) => {
         try {
             await api.put(`/ficha-gestion/${ficha._id}/oportunidades/${oportunidad._id}`, {
                 contacto: {
-                    nombre:   form.contacto_nombre   || null,
+                    nombre: form.contacto_nombre || null,
                     telefono: form.contacto_telefono || null,
-                    dni:      form.contacto_dni      || null,
+                    dni: form.contacto_dni || null,
                 },
                 titulo: form.titulo, producto: form.producto,
                 cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
@@ -367,9 +368,9 @@ const ModalNuevaOpo = ({ ficha, onClose, onGuardado }) => {
         try {
             await api.post(`/ficha-gestion/${ficha._id}/oportunidades`, {
                 contacto: {
-                    nombre:   form.contacto_nombre   || null,
+                    nombre: form.contacto_nombre || null,
                     telefono: form.contacto_telefono || null,
-                    dni:      form.contacto_dni      || null,
+                    dni: form.contacto_dni || null,
                 },
                 titulo: form.titulo, producto: form.producto,
                 cantidad: Number(form.cantidad), cargo_fijo: Number(form.cargo_fijo),
@@ -621,9 +622,8 @@ const Funnel = ({ esSupervisor = false }) => {
     const [modalFicha, setModalFicha] = useState(null);
     const [asesores, setAsesores] = useState([]);
     const [filtroAsesor, setFiltroAsesor] = useState('');
+    const [modalContactos, setModalContactos] = useState(null);
     const searchTimeout = useRef();
-    const [fechaDesde, setFechaDesde] = useState('');
-    const [fechaHasta, setFechaHasta] = useState('');
 
     const endpoint = esSupervisor ? '/ficha-gestion/funnel-supervisor' : '/ficha-gestion/funnel';
 
@@ -637,7 +637,7 @@ const Funnel = ({ esSupervisor = false }) => {
         setLoading(true);
         try {
             const res = await api.get(endpoint, {
-                params: { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor, fecha_desde: fechaDesde, fecha_hasta: fechaHasta, page: p, limit: 50 },
+                params: { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor, page: p, limit: 50 },
             });
             setFichas(res.data.fichas);
             setTotal(res.data.total);
@@ -645,12 +645,12 @@ const Funnel = ({ esSupervisor = false }) => {
             setPage(p);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
-    },[busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor, fechaDesde, fechaHasta]);
+    }, [busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor]);
 
     useEffect(() => {
         clearTimeout(searchTimeout.current);
         searchTimeout.current = setTimeout(() => cargar(1), 400);
-    },[busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor, fechaDesde, fechaHasta]);
+    }, [busqueda, estadosSel, segmento, lineasMin, lineasMax, filtroAsesor]);
 
     const toggleEstado = (key) => setEstadosSel(prev => prev.includes(key) ? prev.filter(e => e !== key) : [...prev, key]);
 
@@ -663,12 +663,12 @@ const Funnel = ({ esSupervisor = false }) => {
     };
 
     const handleDescargar = () => {
-    generarExcelFunnel(
-        endpoint,
-        { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor, fecha_desde: fechaDesde, fecha_hasta: fechaHasta },
-        setDescargando
-    );
-};
+        generarExcelFunnel(
+            endpoint,
+            { busqueda, segmento, lineas_min: lineasMin, lineas_max: lineasMax, estados: estadosSel.join(','), asesor: filtroAsesor },
+            setDescargando
+        );
+    };
 
     return (
         <div>
@@ -705,20 +705,6 @@ const Funnel = ({ esSupervisor = false }) => {
                 </div>
             </div>
 
-            {/* Segunda fila — filtro de fechas */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: '#555', fontWeight: 500 }}>Fecha creación oportunidad:</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555' }}>
-                    <span>Desde</span>
-                    <input type="date" className="filter-select" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
-                    <span>Hasta</span>
-                    <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
-                    {(fechaDesde || fechaHasta) && (
-                        <button className="btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => { setFechaDesde(''); setFechaHasta(''); }}>✕ Limpiar</button>
-                    )}
-                </div>
-            </div>
-
             <div className="estados-filter">
                 {ESTADOS.map(e => (
                     <button key={e.key} className={`estado-filter-btn ${estadosSel.includes(e.key) ? 'active' : ''} ${e.color}`} onClick={() => toggleEstado(e.key)}>
@@ -733,62 +719,70 @@ const Funnel = ({ esSupervisor = false }) => {
             <div className="table-container">
                 {loading ? <p style={{ padding: 20 }}>Cargando...</p>
                     : fichas.length === 0 ? <p style={{ padding: 20, color: '#999' }}>No se encontraron oportunidades.</p>
-                    : (
-                        <>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Último contacto</th>
-                                        <th>RUC</th>
-                                        <th>Razón Social</th>
-                                        {esSupervisor && <th>Asesor</th>}
-                                        <th>Segmento</th>
-                                        <th>Líneas</th>
-                                        <th>Días</th>
-                                        <th>Estado oportunidad</th>
-                                        <th>Oportunidades</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {fichas.map(f => {
-                                        const opo = opoMasAvanzada(f);
-                                        return (
-                                            <tr key={f._id}>
-                                                <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
-                                                <td style={{ fontWeight: 600, color: '#3949ab' }}>{f.ruc}</td>
-                                                <td>{f.razon_social}</td>
-                                                {esSupervisor && <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>}
-                                                <td>{f.segmento || '—'}</td>
-                                                <td>{f.total_lineas || '—'}</td>
-                                                <td><DiasCell fecha={f.fechas?.fecha_ultimo_contacto} /></td>
-                                                <td>{opo ? <EstadoBadge estado={opo.estado} /> : <span style={{ color: '#999', fontSize: 12 }}>Sin oportunidades</span>}</td>
-                                                <td>
-                                                    <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
-                                                        {f.oportunidades?.length || 0}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
-                                                        <FontAwesomeIcon icon={faPen} /> Editar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            {totalPages > 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
-                                    <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} empresas</span>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
-                                        <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
+                        : (
+                            <>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Último contacto</th>
+                                            <th>RUC</th>
+                                            <th>Razón Social</th>
+                                            {esSupervisor && <th>Asesor</th>}
+                                            <th>Segmento</th>
+                                            <th>Líneas</th>
+                                            <th>Días</th>
+                                            <th>Estado oportunidad</th>
+                                            <th>Oportunidades</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {fichas.map(f => {
+                                            const opo = opoMasAvanzada(f);
+                                            return (
+                                                <tr key={f._id}>
+                                                    <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
+                                                    <td>
+                                                        <button
+                                                            onClick={() => setModalContactos({ ruc: f.ruc, razon_social: f.razon_social })}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3949ab', fontWeight: 700, fontSize: 13, padding: 0, textDecoration: 'underline' }}
+                                                            title="Ver contactos"
+                                                        >
+                                                            {f.ruc}
+                                                        </button>
+                                                    </td>
+                                                    <td>{f.razon_social}</td>
+                                                    {esSupervisor && <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>}
+                                                    <td>{f.segmento || '—'}</td>
+                                                    <td>{f.total_lineas || '—'}</td>
+                                                    <td><DiasCell fecha={f.fechas?.fecha_ultimo_contacto} /></td>
+                                                    <td>{opo ? <EstadoBadge estado={opo.estado} /> : <span style={{ color: '#999', fontSize: 12 }}>Sin oportunidades</span>}</td>
+                                                    <td>
+                                                        <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+                                                            {f.oportunidades?.length || 0}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button className="btn-estado btn-asignar" onClick={() => setModalFicha(f)}>
+                                                            <FontAwesomeIcon icon={faPen} /> Editar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
+                                        <span style={{ fontSize: 13, color: '#666' }}>Página {page} de {totalPages} — {total} empresas</span>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button className="btn-secondary" onClick={() => cargar(page - 1)} disabled={page === 1}><FontAwesomeIcon icon={faChevronLeft} /></button>
+                                            <button className="btn-secondary" onClick={() => cargar(page + 1)} disabled={page === totalPages}><FontAwesomeIcon icon={faChevronRight} /></button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                            </>
+                        )}
             </div>
 
             {modalFicha && (
@@ -797,6 +791,13 @@ const Funnel = ({ esSupervisor = false }) => {
                     esSupervisor={esSupervisor}
                     onClose={() => setModalFicha(null)}
                     onGuardado={() => cargar(page)}
+                />
+            )}
+            {modalContactos && (
+                <ModalContactos
+                    ruc={modalContactos.ruc}
+                    razon_social={modalContactos.razon_social}
+                    onClose={() => setModalContactos(null)}
                 />
             )}
         </div>

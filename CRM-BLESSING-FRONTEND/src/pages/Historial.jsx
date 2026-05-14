@@ -2,27 +2,27 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faHistory, faChevronLeft, faChevronRight, faFilter, faEye,
-    faPhone, faIdCard, faBriefcase, faComment, faBullseye
+    faPhone, faIdCard, faBriefcase, faComment, faBullseye, faUsers, faAddressCard
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Usuarios.css';
 import './BdGeneral.css';
 
 const TIPOS = [
-    { key: 'interesado',                  label: 'Cliente Interesado',    color: 'tipo-interesado' },
-    { key: 'cliente_claro',               label: 'Cliente Claro',         color: 'tipo-claro' },
-    { key: 'sin_contacto',                label: 'Sin Contacto',          color: 'tipo-sin-contacto' },
-    { key: 'con_deuda',                   label: 'Con Deuda',             color: 'tipo-deuda' },
-    { key: 'no_contesta',                 label: 'No Contesta',           color: 'tipo-no-contesta' },
-    { key: 'cliente_no_interesado',       label: 'Cliente No Interesado', color: 'tipo-no-interesado' },
-    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido',       color: 'tipo-sustento-valido' },
+    { key: 'interesado', label: 'Cliente Interesado', color: 'tipo-interesado' },
+    { key: 'cliente_claro', label: 'Cliente Claro', color: 'tipo-claro' },
+    { key: 'sin_contacto', label: 'Sin Contacto', color: 'tipo-sin-contacto' },
+    { key: 'con_deuda', label: 'Con Deuda', color: 'tipo-deuda' },
+    { key: 'no_contesta', label: 'No Contesta', color: 'tipo-no-contesta' },
+    { key: 'cliente_no_interesado', label: 'Cliente No Interesado', color: 'tipo-no-interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido', color: 'tipo-sustento-valido' },
 ];
 
 const ESTADOS_OPO = [
-    { key: 'Identificada',        color: '#ede7f6', text: '#4527a0' },
+    { key: 'Identificada', color: '#ede7f6', text: '#4527a0' },
     { key: 'Propuesta Entregada', color: '#fff8e1', text: '#f57f17' },
-    { key: 'Negociación',         color: '#e8f5e9', text: '#2e7d32' },
-    { key: 'Negociada Aprobada',  color: '#e3f2fd', text: '#1565c0' },
+    { key: 'Negociación', color: '#e8f5e9', text: '#2e7d32' },
+    { key: 'Negociada Aprobada', color: '#e3f2fd', text: '#1565c0' },
     { key: 'Negociada Rechazada', color: '#fce8e6', text: '#c62828' },
 ];
 
@@ -41,6 +41,84 @@ const EstadoOpoBadge = ({ estado }) => {
     const e = ESTADOS_OPO.find(e => e.key === estado);
     if (!e) return null;
     return <span style={{ background: e.color, color: e.text, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{estado}</span>;
+};
+
+// ── Modal Contactos ───────────────────────────────────────────────────────────
+export const ModalContactos = ({ ruc, razon_social, onClose }) => {
+    const [tab, setTab] = useState('autorizados');
+    const [autorizados, setAutorizados] = useState([]);
+    const [rrll, setRrll] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const cargar = async () => {
+            setLoading(true);
+            try {
+                const [resAuth, resRRLL] = await Promise.all([
+                    api.get(`/contactos/autorizados/${ruc}`),
+                    api.get(`/contactos/rrll/${ruc}`),
+                ]);
+                setAutorizados(resAuth.data || []);
+                setRrll(resRRLL.data || []);
+            } catch (err) { console.error(err); }
+            finally { setLoading(false); }
+        };
+        cargar();
+    }, [ruc]);
+
+    const renderContacto = (c, i) => (
+        <div key={i} style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: '12px 16px', marginBottom: 8 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{c.nombre}</div>
+            {c.cargo && <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}><FontAwesomeIcon icon={faBriefcase} style={{ marginRight: 4 }} />{c.cargo}</div>}
+            {(c.dni || c.nr_doc) && <div style={{ fontSize: 12, marginBottom: 4 }}><FontAwesomeIcon icon={faIdCard} style={{ marginRight: 4, color: '#888' }} />{c.dni || c.nr_doc}</div>}
+            {c.telefonos?.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4, alignItems: 'center' }}>
+                    <FontAwesomeIcon icon={faPhone} style={{ color: '#888', fontSize: 11 }} />
+                    {c.telefonos.map((t, j) => <span key={j} className="contacto-chip">{t}</span>)}
+                </div>
+            )}
+            {c.correos?.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#888' }}>✉</span>
+                    {c.correos.map((e, j) => <span key={j} className="contacto-chip">{e}</span>)}
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal" style={{ width: '90vw', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
+                <h2 style={{ marginBottom: 4 }}>Contactos</h2>
+                <p style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>{razon_social} — {ruc}</p>
+
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: '2px solid #f0f0f0' }}>
+                    <button onClick={() => setTab('autorizados')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: tab === 'autorizados' ? 700 : 400, borderBottom: tab === 'autorizados' ? '2px solid #1D2558' : '2px solid transparent', color: tab === 'autorizados' ? '#1D2558' : '#666' }}>
+                        <FontAwesomeIcon icon={faAddressCard} style={{ marginRight: 6 }} />Autorizados ({autorizados.length})
+                    </button>
+                    <button onClick={() => setTab('rrll')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: tab === 'rrll' ? 700 : 400, borderBottom: tab === 'rrll' ? '2px solid #1D2558' : '2px solid transparent', color: tab === 'rrll' ? '#1D2558' : '#666' }}>
+                        <FontAwesomeIcon icon={faUsers} style={{ marginRight: 6 }} />RRLL ({rrll.length})
+                    </button>
+                </div>
+
+                {loading ? (
+                    <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>Cargando contactos...</p>
+                ) : tab === 'autorizados' ? (
+                    autorizados.length === 0
+                        ? <p style={{ color: '#999', textAlign: 'center', padding: 20 }}>Sin contactos autorizados</p>
+                        : autorizados.map((c, i) => renderContacto(c, i))
+                ) : (
+                    rrll.length === 0
+                        ? <p style={{ color: '#999', textAlign: 'center', padding: 20 }}>Sin contactos RRLL</p>
+                        : rrll.map((c, i) => renderContacto(c, i))
+                )}
+
+                <div className="modal-actions" style={{ marginTop: 16 }}>
+                    <button className="btn-secondary" onClick={onClose}>Cerrar</button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 // ── Modal Ficha ───────────────────────────────────────────────────────────────
@@ -157,6 +235,7 @@ const Historial = () => {
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
     const [modalFicha, setModalFicha] = useState(null);
+    const [modalContactos, setModalContactos] = useState(null); // { ruc, razon_social }
     const searchTimeout = useRef();
 
     const cargar = useCallback(async (p = 1) => {
@@ -245,7 +324,15 @@ const Historial = () => {
                                     return (
                                         <tr key={f._id}>
                                             <td>{fmt(f.fechas?.fecha_ultimo_contacto)}</td>
-                                            <td style={{ fontWeight: 600 }}>{f.ruc}</td>
+                                            <td>
+                                                <button
+                                                    onClick={() => setModalContactos({ ruc: f.ruc, razon_social: f.razon_social })}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3949ab', fontWeight: 700, fontSize: 13, padding: 0, textDecoration: 'underline' }}
+                                                    title="Ver contactos"
+                                                >
+                                                    {f.ruc}
+                                                </button>
+                                            </td>
                                             <td>{f.razon_social}</td>
                                             <td>{f.asesor?.id_asesor?.nombre_user || '—'}</td>
                                             <td>{f.segmento || '—'}</td>
@@ -290,6 +377,13 @@ const Historial = () => {
             </div>
 
             {modalFicha && <ModalFicha ficha={modalFicha} onClose={() => setModalFicha(null)} />}
+            {modalContactos && (
+                <ModalContactos
+                    ruc={modalContactos.ruc}
+                    razon_social={modalContactos.razon_social}
+                    onClose={() => setModalContactos(null)}
+                />
+            )}
         </div>
     );
 };

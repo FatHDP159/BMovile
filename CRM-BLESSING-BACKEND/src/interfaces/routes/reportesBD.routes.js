@@ -178,6 +178,16 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
     }
 });
 
+// GET /api/reportes-bd/segmentos-raw  ← diagnóstico temporal
+router.get('/segmentos-raw', verifyToken, verifyRole('sistemas'), async (req, res) => {
+    try {
+        const valores = await EmpresaV2.distinct('salesforce.segmento');
+        res.json({ total: valores.length, valores });
+    } catch (error) {
+        res.status(500).json({ message: 'Error', error: error.message });
+    }
+});
+
 // GET /api/reportes-bd/descargar?tipo=segmento&valor=Pyme
 router.get('/descargar', verifyToken, verifyRole('sistemas'), async (req, res) => {
     try {

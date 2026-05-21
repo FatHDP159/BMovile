@@ -16,6 +16,7 @@ import Solicitudes from './pages/Solicitudes';
 import CalendarioSupervisor from './pages/CalendarioSupervisor';
 import Historial from './pages/Historial';
 import AdminBD from './pages/AdminBD';
+import Reportes from './pages/Reportes';
 import NotFound from './pages/NotFound';
 
 const App = () => {
@@ -40,6 +41,7 @@ const App = () => {
       <Route path="/calendario-supervisor" element={<PrivateRoute roles={['supervisor']}><Layout><CalendarioSupervisor /></Layout></PrivateRoute>} />
       <Route path="/historial" element={<PrivateRoute roles={['sistemas']}><Layout><Historial /></Layout></PrivateRoute>} />
       <Route path="/admin-bd" element={<PrivateRoute roles={['sistemas']}><Layout><AdminBD /></Layout></PrivateRoute>} />
+      <Route path="/reportes" element={<PrivateRoute roles={['sistemas']}><Layout><Reportes /></Layout></PrivateRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\AlexisAE\\\\CRM-BLESSING\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs grep -l \"GET\\\\|router.get\")"
+    ]
+  }
+}

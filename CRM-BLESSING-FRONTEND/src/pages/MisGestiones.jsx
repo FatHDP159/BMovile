@@ -48,15 +48,37 @@ const EstadoOpoBadge = ({ estado }) => {
 };
 
 // ── Modal Editar interacción ──────────────────────────────────────────────────
-const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, onGuardado }) => {
+const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, ruc, onClose, onGuardado }) => {
     const [tipo, setTipo] = useState(interaccion.tipo);
     const [comentario, setComentario] = useState(interaccion.comentario || '');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [contactosRRLL, setContactosRRLL] = useState([]);
+    const [contactosAuth, setContactosAuth] = useState([]);
     const [opo, setOpo] = useState({
         titulo: '', producto: '', cantidad: '', cargo_fijo: '',
         fecha_cierre_esperada: '', entel: '', claro: '', movistar: '', otros: '', total_lineas: '',
+        contacto_nombre: '', contacto_telefono: '', contacto_dni: '',
     });
+
+    useEffect(() => {
+        if (!ruc) return;
+        Promise.all([
+            api.get(`/empresas-v2/${ruc}/contactos-rrll`).then(r => r.data).catch(() => []),
+            api.get(`/contactos/autorizados/${ruc}`).then(r => r.data).catch(() => []),
+        ]).then(([rrll, auth]) => { setContactosRRLL(rrll); setContactosAuth(auth); });
+    }, [ruc]);
+
+    const handleContactoChange = (id) => {
+        const todos = [...contactosAuth, ...contactosRRLL];
+        const c = todos.find(c => c._id === id);
+        if (c) setOpo(o => ({
+            ...o,
+            contacto_nombre: c.nombre || '',
+            contacto_telefono: c.telefonos?.[0] || '',
+            contacto_dni: c.dni || c.nr_doc || '',
+        }));
+    };
 
     const handleGuardar = async () => {
         if (tipo === 'interesado') {
@@ -81,6 +103,11 @@ const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, 
                         movistar: Number(opo.movistar) || 0,
                         otros: Number(opo.otros) || 0,
                         total: Number(opo.total_lineas) || 0,
+                    },
+                    contacto: {
+                        nombre: opo.contacto_nombre || null,
+                        telefono: opo.contacto_telefono || null,
+                        dni: opo.contacto_dni || null,
                     },
                 };
             }
@@ -111,6 +138,38 @@ const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, 
                 {tipo === 'interesado' && (
                     <div style={{ marginTop: 16, padding: '14px 16px', background: '#f5f7ff', borderRadius: 8, border: '1px solid #c5cae9' }}>
                         <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: 13, color: '#3949ab' }}>Datos de la oportunidad</p>
+
+                        <div className="form-field">
+                            <label>Contacto</label>
+                            <select className="form-input" onChange={e => handleContactoChange(e.target.value)} defaultValue="">
+                                <option value="">-- Seleccionar --</option>
+                                {contactosAuth.length > 0 && (
+                                    <optgroup label="Contactos Autorizados">
+                                        {contactosAuth.map(c => <option key={c._id} value={c._id}>{c.nombre}{c.dni ? ` - ${c.dni}` : ''}</option>)}
+                                    </optgroup>
+                                )}
+                                {contactosRRLL.length > 0 && (
+                                    <optgroup label="Contactos RRLL">
+                                        {contactosRRLL.map(c => <option key={c._id} value={c._id}>{c.nombre}{c.nr_doc ? ` - ${c.nr_doc}` : ''}</option>)}
+                                    </optgroup>
+                                )}
+                            </select>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                            <div className="form-field">
+                                <label>Nombre</label>
+                                <input className="form-input" value={opo.contacto_nombre} onChange={e => setOpo(o => ({ ...o, contacto_nombre: e.target.value }))} />
+                            </div>
+                            <div className="form-field">
+                                <label>Teléfono</label>
+                                <input className="form-input" value={opo.contacto_telefono} onChange={e => setOpo(o => ({ ...o, contacto_telefono: e.target.value }))} />
+                            </div>
+                            <div className="form-field">
+                                <label>DNI</label>
+                                <input className="form-input" value={opo.contacto_dni} onChange={e => setOpo(o => ({ ...o, contacto_dni: e.target.value }))} />
+                            </div>
+                        </div>
+
                         <div className="form-field">
                             <label>Título (opcional)</label>
                             <input className="form-input" value={opo.titulo} onChange={e => setOpo(o => ({ ...o, titulo: e.target.value }))} placeholder="Ej: Renovación 50 líneas" />
@@ -272,6 +331,7 @@ const ModalFicha = ({ ficha: fichaInicial, onClose, onGuardado }) => {
                         interaccion={editandoInteraccion}
                         fichaId={ficha._id}
                         interaccionId={editandoInteraccion._id}
+                        ruc={ficha.ruc}
                         onClose={() => setEditandoInteraccion(null)}
                         onGuardado={() => { setEditandoInteraccion(null); recargar(); }}
                     />

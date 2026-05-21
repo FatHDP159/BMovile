@@ -24,11 +24,22 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
             fichasSinOportunidades,
             fichasEnFunnel,
         ] = await Promise.all([
-            // 1. Por segmento
+            // 1. Por segmento (normalizado)
             EmpresaV2.aggregate([
                 {
                     $group: {
-                        _id: { $ifNull: ['$salesforce.segmento', 'Sin segmento'] },
+                        _id: {
+                            $switch: {
+                                branches: [
+                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['pyme']] },                          then: 'Pyme'     },
+                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['micro empresas', 'micro empresa']] }, then: 'Micro'    },
+                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['mayores']] },                        then: 'Mayores'  },
+                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['empresas']] },                       then: 'Empresas' },
+                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['gobierno']] },                       then: 'Gobierno' },
+                                ],
+                                default: 'Sin segmento',
+                            },
+                        },
                         count: { $sum: 1 },
                     },
                 },
@@ -218,9 +229,19 @@ router.get('/descargar', verifyToken, verifyRole('sistemas'), async (req, res) =
         });
 
         if (tipo === 'segmento') {
-            const query = (!valor || valor === 'Sin segmento')
-                ? { $or: [{ 'salesforce.segmento': null }, { 'salesforce.segmento': '' }] }
-                : { 'salesforce.segmento': valor };
+            const REGEX_SEGMENTO = {
+                'Pyme':        { 'salesforce.segmento': { $regex: '^pyme$',     $options: 'i' } },
+                'Micro':       { 'salesforce.segmento': { $regex: '^micro',     $options: 'i' } },
+                'Mayores':     { 'salesforce.segmento': { $regex: '^mayores$',  $options: 'i' } },
+                'Empresas':    { 'salesforce.segmento': { $regex: '^empresas$', $options: 'i' } },
+                'Gobierno':    { 'salesforce.segmento': { $regex: '^gobierno$', $options: 'i' } },
+                'Sin segmento': { $or: [
+                    { 'salesforce.segmento': null },
+                    { 'salesforce.segmento': { $regex: '^n/a$', $options: 'i' } },
+                    { 'salesforce.segmento': '' },
+                ]},
+            };
+            const query = REGEX_SEGMENTO[valor] ?? REGEX_SEGMENTO['Sin segmento'];
             const docs = await EmpresaV2.find(query, camposEmpresa).lean();
             return res.json(docs.map(fmtEmpresa));
         }

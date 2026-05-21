@@ -10,6 +10,8 @@ import { ModalContactos } from './Historial';
 import './Usuarios.css';
 import './MisGestiones.css';
 
+const PRODUCTOS = ['Portabilidad', 'Renovación', 'Fibra', 'HFC o FTTH', 'Cloud', 'Alta', 'Licencias Google', 'Licencias Microsoft', 'SVA'];
+
 const TIPOS_INTERACCION = [
     { key: 'interesado', label: 'Cliente Interesado', color: 'tipo-interesado' },
     { key: 'sin_contacto', label: 'Sin Contacto', color: 'tipo-sin-contacto' },
@@ -51,14 +53,38 @@ const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, 
     const [comentario, setComentario] = useState(interaccion.comentario || '');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [opo, setOpo] = useState({
+        titulo: '', producto: '', cantidad: '', cargo_fijo: '',
+        fecha_cierre_esperada: '', entel: '', claro: '', movistar: '', otros: '', total_lineas: '',
+    });
 
     const handleGuardar = async () => {
+        if (tipo === 'interesado') {
+            if (!opo.producto || !opo.cantidad || !opo.cargo_fijo) {
+                setError('Producto, cantidad y cargo fijo son obligatorios para tipo Interesado');
+                return;
+            }
+        }
         setLoading(true);
         try {
-            await api.put(`/ficha-gestion/${fichaId}/interacciones/${interaccionId}`, {
-                tipo,
-                comentario: comentario.trim() || null,
-            });
+            const body = { tipo, comentario: comentario.trim() || null };
+            if (tipo === 'interesado') {
+                body.oportunidad = {
+                    titulo: opo.titulo.trim() || null,
+                    producto: opo.producto,
+                    cantidad: Number(opo.cantidad),
+                    cargo_fijo: Number(opo.cargo_fijo),
+                    fecha_cierre_esperada: opo.fecha_cierre_esperada || null,
+                    operadores: {
+                        entel: Number(opo.entel) || 0,
+                        claro: Number(opo.claro) || 0,
+                        movistar: Number(opo.movistar) || 0,
+                        otros: Number(opo.otros) || 0,
+                        total: Number(opo.total_lineas) || 0,
+                    },
+                };
+            }
+            await api.put(`/ficha-gestion/${fichaId}/interacciones/${interaccionId}`, body);
             onGuardado();
             onClose();
         } catch { setError('Error al actualizar interacción'); }
@@ -67,12 +93,12 @@ const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, 
 
     return (
         <div className="modal-overlay">
-            <div className="modal" style={{ maxWidth: 500 }}>
+            <div className="modal" style={{ maxWidth: 540, maxHeight: '90vh', overflowY: 'auto' }}>
                 <h2>Editar Interacción</h2>
                 {error && <p style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{error}</p>}
                 <div className="tipificaciones-grid" style={{ marginBottom: 16 }}>
                     {TIPOS_INTERACCION.map(t => (
-                        <button key={t.key} className={`btn-tipificacion ${tipo === t.key ? 'selected' : ''}`} onClick={() => setTipo(t.key)}>
+                        <button key={t.key} className={`btn-tipificacion ${tipo === t.key ? 'selected' : ''}`} onClick={() => { setTipo(t.key); setError(''); }}>
                             {t.label}
                         </button>
                     ))}
@@ -81,6 +107,47 @@ const ModalEditarInteraccion = ({ interaccion, fichaId, interaccionId, onClose, 
                     <label>Comentario (opcional)</label>
                     <textarea className="form-input" rows={3} value={comentario} onChange={e => setComentario(e.target.value)} style={{ resize: 'vertical' }} />
                 </div>
+
+                {tipo === 'interesado' && (
+                    <div style={{ marginTop: 16, padding: '14px 16px', background: '#f5f7ff', borderRadius: 8, border: '1px solid #c5cae9' }}>
+                        <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: 13, color: '#3949ab' }}>Datos de la oportunidad</p>
+                        <div className="form-field">
+                            <label>Título (opcional)</label>
+                            <input className="form-input" value={opo.titulo} onChange={e => setOpo(o => ({ ...o, titulo: e.target.value }))} placeholder="Ej: Renovación 50 líneas" />
+                        </div>
+                        <div className="form-field">
+                            <label>Producto *</label>
+                            <select className="form-input" value={opo.producto} onChange={e => setOpo(o => ({ ...o, producto: e.target.value }))}>
+                                <option value="">-- Seleccionar --</option>
+                                {PRODUCTOS.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div className="form-field">
+                                <label>Cantidad *</label>
+                                <input className="form-input" type="number" min="0" value={opo.cantidad} onChange={e => setOpo(o => ({ ...o, cantidad: e.target.value }))} />
+                            </div>
+                            <div className="form-field">
+                                <label>Cargo fijo (S/.) *</label>
+                                <input className="form-input" type="number" min="0" value={opo.cargo_fijo} onChange={e => setOpo(o => ({ ...o, cargo_fijo: e.target.value }))} />
+                            </div>
+                        </div>
+                        <div className="form-field">
+                            <label>Fecha cierre esperada</label>
+                            <input className="form-input" type="date" value={opo.fecha_cierre_esperada} onChange={e => setOpo(o => ({ ...o, fecha_cierre_esperada: e.target.value }))} />
+                        </div>
+                        <p style={{ margin: '10px 0 6px', fontSize: 12, fontWeight: 600, color: '#555' }}>Operadores</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8 }}>
+                            {['entel', 'claro', 'movistar', 'otros', 'total_lineas'].map(op => (
+                                <div key={op} className="form-field">
+                                    <label style={{ textTransform: 'capitalize' }}>{op === 'total_lineas' ? 'Total' : op}</label>
+                                    <input className="form-input" type="number" min="0" value={opo[op]} onChange={e => setOpo(o => ({ ...o, [op]: e.target.value }))} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="modal-actions">
                     <button className="btn-secondary" onClick={onClose}>Cancelar</button>
                     <button className="btn-primary" onClick={handleGuardar} disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>

@@ -54,15 +54,28 @@ router.put('/:fichaId/oportunidades/:opoId', verifyToken, verifyRole('asesor', '
 // ── PUT /:fichaId/interacciones/:interaccionId — Editar tipo y comentario ───
 router.put('/:fichaId/interacciones/:interaccionId', verifyToken, verifyRole('asesor', 'supervisor'), async (req, res) => {
     try {
-        const { tipo, comentario } = req.body;
+        const { tipo, comentario, oportunidad } = req.body;
+
+        if (tipo === 'interesado' && !oportunidad) {
+            return res.status(400).json({ message: 'Para tipo interesado debes incluir datos de la oportunidad' });
+        }
+
+        const update = {
+            $set: {
+                'interacciones.$.tipo': tipo,
+                'interacciones.$.comentario': comentario || null,
+            },
+        };
+
+        if (tipo === 'interesado' && oportunidad) {
+            update.$push = {
+                oportunidades: { ...oportunidad, fecha_creacion: new Date() },
+            };
+        }
+
         const ficha = await FichaGestion.findOneAndUpdate(
             { _id: req.params.fichaId, 'interacciones._id': req.params.interaccionId },
-            {
-                $set: {
-                    'interacciones.$.tipo': tipo,
-                    'interacciones.$.comentario': comentario || null,
-                }
-            },
+            update,
             { new: true }
         );
         if (!ficha) return res.status(404).json({ message: 'Ficha o interacción no encontrada' });

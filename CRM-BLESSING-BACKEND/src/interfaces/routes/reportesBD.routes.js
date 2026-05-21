@@ -4,7 +4,28 @@ const { verifyToken } = require('../../infrastructure/middlewares/auth.middlewar
 const { verifyRole } = require('../../infrastructure/middlewares/roles.middleware');
 const EmpresaV2 = require('../../domain/empresaV2/empresaV2.model.js');
 const FichaGestion = require('../../domain/fichaGestion/fichaGestion.model.js');
-const User = require('../../domain/users/user.model.js');
+const User                   = require('../../domain/users/user.model.js');
+const ContactoAutorizado     = require('../../domain/contactos/contactoAutorizado.model.js');
+const ContactoAutorizadoDato = require('../../domain/contactos/contactoAutorizadoDato.model.js');
+
+const SEGMENTO_SWITCH = {
+    $switch: {
+        branches: [
+            { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['pyme']] },                           then: 'Pyme'     },
+            { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['micro empresas', 'micro empresa']] }, then: 'Micro'    },
+            { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['mayores']] },                         then: 'Mayores'  },
+            { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['empresas']] },                        then: 'Empresas' },
+            { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['gobierno']] },                        then: 'Gobierno' },
+        ],
+        default: 'Sin segmento',
+    },
+};
+
+const fmtDesglose = (arr) => {
+    const obj = {};
+    arr.forEach(item => { obj[item._id] = item.count; });
+    return obj;
+};
 
 // GET /api/reportes-bd/metricas
 router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) => {
@@ -12,54 +33,34 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
         const hace7dias = new Date();
         hace7dias.setDate(hace7dias.getDate() - 7);
 
+        // Fase 1 — queries independientes + RUCs de contactos en paralelo
         const [
             porSegmento,
             sinLineas,
             porOperadorRaw,
-            sinContactosAutorizados,
-            sinTelefono,
-            sinCorreo,
             porEstadoRaw,
             rucsConContactoReciente,
             fichasSinOportunidades,
             fichasEnFunnel,
+            rucsConContacto,
+            rucsConTelefono,
+            rucsConCorreo,
         ] = await Promise.all([
-            // 1. Por segmento (normalizado)
+            // 1. Por segmento (normalizado con SEGMENTO_SWITCH)
             EmpresaV2.aggregate([
-                {
-                    $group: {
-                        _id: {
-                            $switch: {
-                                branches: [
-                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['pyme']] },                          then: 'Pyme'     },
-                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['micro empresas', 'micro empresa']] }, then: 'Micro'    },
-                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['mayores']] },                        then: 'Mayores'  },
-                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['empresas']] },                       then: 'Empresas' },
-                                    { case: { $in: [{ $toLower: '$salesforce.segmento' }, ['gobierno']] },                       then: 'Gobierno' },
-                                ],
-                                default: 'Sin segmento',
-                            },
-                        },
-                        count: { $sum: 1 },
-                    },
-                },
+                { $group: { _id: SEGMENTO_SWITCH, count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
             ]),
 
             // 2. Sin líneas (osiptel.total === 0)
             EmpresaV2.countDocuments({ 'osiptel.total': 0 }),
 
-            // 3. Por operador dominante (mayor cantidad de líneas)
+            // 3. Por operador dominante
             EmpresaV2.aggregate([
                 {
                     $addFields: {
                         max_lineas: {
-                            $max: [
-                                '$osiptel.claro',
-                                '$osiptel.movistar',
-                                '$osiptel.entel',
-                                '$osiptel.otros',
-                            ],
+                            $max: ['$osiptel.claro', '$osiptel.movistar', '$osiptel.entel', '$osiptel.otros'],
                         },
                     },
                 },
@@ -68,100 +69,88 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
                         operador_dominante: {
                             $switch: {
                                 branches: [
-                                    {
-                                        case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.claro', '$max_lineas'] }] },
-                                        then: 'claro',
-                                    },
-                                    {
-                                        case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.movistar', '$max_lineas'] }] },
-                                        then: 'movistar',
-                                    },
-                                    {
-                                        case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.entel', '$max_lineas'] }] },
-                                        then: 'entel',
-                                    },
-                                    {
-                                        case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.otros', '$max_lineas'] }] },
-                                        then: 'otros',
-                                    },
+                                    { case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.claro',    '$max_lineas'] }] }, then: 'claro'    },
+                                    { case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.movistar', '$max_lineas'] }] }, then: 'movistar' },
+                                    { case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.entel',    '$max_lineas'] }] }, then: 'entel'    },
+                                    { case: { $and: [{ $gt: ['$max_lineas', 0] }, { $eq: ['$osiptel.otros',    '$max_lineas'] }] }, then: 'otros'    },
                                 ],
                                 default: 'sin_operador',
                             },
                         },
                     },
                 },
-                {
-                    $group: { _id: '$operador_dominante', count: { $sum: 1 } },
-                },
+                { $group: { _id: '$operador_dominante', count: { $sum: 1 } } },
             ]),
 
-            // 4. Sin ningún contacto autorizado
-            EmpresaV2.countDocuments({
-                $or: [
-                    { contactos_autorizados: { $exists: false } },
-                    { contactos_autorizados: { $size: 0 } },
-                ],
-            }),
-
-            // 5. Sin teléfono en contactos autorizados
-            EmpresaV2.countDocuments({
-                contactos_autorizados: {
-                    $not: { $elemMatch: { tel: { $nin: [null, ''] } } },
-                },
-            }),
-
-            // 6. Sin correo en contactos autorizados
-            EmpresaV2.countDocuments({
-                contactos_autorizados: {
-                    $not: { $elemMatch: { correo: { $nin: [null, ''] } } },
-                },
-            }),
-
-            // 7. Por estado_base
+            // 4. Por estado_base
             EmpresaV2.aggregate([
-                {
-                    $group: {
-                        _id: '$estado_base',
-                        count: { $sum: 1 },
-                    },
-                },
+                { $group: { _id: '$estado_base', count: { $sum: 1 } } },
             ]),
 
-            // 8. RUCs con contacto en los últimos 7 días (para calcular asignadas sin tipificar)
+            // 5. RUCs con tipificación reciente (para asignadas sin tipificar)
             FichaGestion.distinct('ruc', {
                 activa: true,
                 'fechas.fecha_ultimo_contacto': { $gte: hace7dias },
             }),
 
-            // 9. Fichas activas sin oportunidades
+            // 6. Fichas activas sin oportunidades
             FichaGestion.countDocuments({
                 activa: true,
-                $or: [
-                    { oportunidades: { $exists: false } },
-                    { oportunidades: { $size: 0 } },
-                ],
+                $or: [{ oportunidades: { $exists: false } }, { oportunidades: { $size: 0 } }],
             }),
 
-            // 10. Fichas activas con oportunidades en funnel (no cerradas)
+            // 7. Fichas activas con oportunidades en funnel
             FichaGestion.countDocuments({
                 activa: true,
                 oportunidades: {
                     $elemMatch: {
-                        estado: {
-                            $in: ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada'],
-                        },
+                        estado: { $in: ['Identificada', 'Propuesta Entregada', 'Negociación', 'Negociada Aprobada'] },
                     },
                 },
             }),
+
+            // 8. RUCs de calidad (colecciones de contactos)
+            ContactoAutorizado.distinct('ruc'),
+            ContactoAutorizadoDato.distinct('ruc', { tipo: 'telefono' }),
+            ContactoAutorizadoDato.distinct('ruc', { tipo: 'correo' }),
         ]);
 
-        // 8 (cont.) — empresas asignadas sin tipificar en más de 7 días
-        const asignadasSinTipificar = await EmpresaV2.countDocuments({
-            estado_base: 'asignada',
-            ruc: { $nin: rucsConContactoReciente },
-        });
+        // Fase 2 — calidad de datos (depende de los RUCs de fase 1) + asignadasSinTipificar
+        const [
+            sinContactosTotal,
+            sinTelefonoTotal,
+            sinCorreoTotal,
+            sinContactosDesglose,
+            sinTelefonoDesglose,
+            sinCorreoDesglose,
+            asignadasSinTipificar,
+        ] = await Promise.all([
+            // empresas sin ningún contacto autorizado
+            EmpresaV2.countDocuments({ ruc: { $nin: rucsConContacto } }),
+            // empresas con contacto pero sin teléfono
+            EmpresaV2.countDocuments({ ruc: { $in: rucsConContacto, $nin: rucsConTelefono } }),
+            // empresas con contacto pero sin correo
+            EmpresaV2.countDocuments({ ruc: { $in: rucsConContacto, $nin: rucsConCorreo } }),
+            // desglose por segmento
+            EmpresaV2.aggregate([
+                { $match: { ruc: { $nin: rucsConContacto } } },
+                { $group: { _id: SEGMENTO_SWITCH, count: { $sum: 1 } } },
+            ]),
+            EmpresaV2.aggregate([
+                { $match: { ruc: { $in: rucsConContacto, $nin: rucsConTelefono } } },
+                { $group: { _id: SEGMENTO_SWITCH, count: { $sum: 1 } } },
+            ]),
+            EmpresaV2.aggregate([
+                { $match: { ruc: { $in: rucsConContacto, $nin: rucsConCorreo } } },
+                { $group: { _id: SEGMENTO_SWITCH, count: { $sum: 1 } } },
+            ]),
+            EmpresaV2.countDocuments({
+                estado_base: 'asignada',
+                ruc: { $nin: rucsConContactoReciente },
+            }),
+        ]);
 
-        // Normalizar resultados de aggregations a objetos planos
+        // Normalizar aggregations a objetos planos
         const segmentos = {};
         porSegmento.forEach(s => { segmentos[s._id] = s.count; });
 
@@ -175,9 +164,12 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
             porSegmento: segmentos,
             sinLineas,
             porOperador: operadores,
-            sinContactosAutorizados,
-            sinTelefono,
-            sinCorreo,
+            sinContactosAutorizados: sinContactosTotal,
+            sinContactosDesglose:    fmtDesglose(sinContactosDesglose),
+            sinTelefono:             sinTelefonoTotal,
+            sinTelefonoDesglose:     fmtDesglose(sinTelefonoDesglose),
+            sinCorreo:               sinCorreoTotal,
+            sinCorreoDesglose:       fmtDesglose(sinCorreoDesglose),
             porEstado: estados,
             asignadasSinTipificar,
             fichasSinOportunidades,
@@ -273,22 +265,29 @@ router.get('/descargar', verifyToken, verifyRole('sistemas'), async (req, res) =
         }
 
         if (tipo === 'sinContactos') {
-            const docs = await EmpresaV2.find({
-                $or: [{ contactos_autorizados: { $exists: false } }, { contactos_autorizados: { $size: 0 } }],
-            }, camposEmpresa).lean();
+            const rucsConContacto = await ContactoAutorizado.distinct('ruc');
+            const docs = await EmpresaV2.find({ ruc: { $nin: rucsConContacto } }, camposEmpresa).lean();
             return res.json(docs.map(fmtEmpresa));
         }
 
         if (tipo === 'sinTelefono') {
+            const [rucsConContacto, rucsConTelefono] = await Promise.all([
+                ContactoAutorizado.distinct('ruc'),
+                ContactoAutorizadoDato.distinct('ruc', { tipo: 'telefono' }),
+            ]);
             const docs = await EmpresaV2.find({
-                contactos_autorizados: { $not: { $elemMatch: { tel: { $nin: [null, ''] } } } },
+                ruc: { $in: rucsConContacto, $nin: rucsConTelefono },
             }, camposEmpresa).lean();
             return res.json(docs.map(fmtEmpresa));
         }
 
         if (tipo === 'sinCorreo') {
+            const [rucsConContacto, rucsConCorreo] = await Promise.all([
+                ContactoAutorizado.distinct('ruc'),
+                ContactoAutorizadoDato.distinct('ruc', { tipo: 'correo' }),
+            ]);
             const docs = await EmpresaV2.find({
-                contactos_autorizados: { $not: { $elemMatch: { correo: { $nin: [null, ''] } } } },
+                ruc: { $in: rucsConContacto, $nin: rucsConCorreo },
             }, camposEmpresa).lean();
             return res.json(docs.map(fmtEmpresa));
         }

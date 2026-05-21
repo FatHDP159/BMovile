@@ -99,6 +99,39 @@ const TarjetaOperador = ({ op, value, seleccionado, onSelect, dlKey, descargando
     </div>
 );
 
+const TarjetaCalidad = ({ label, value, color, icon, desglose, dlKey, descargando, onDescargar }) => {
+    const chips = SEGMENTOS
+        .map(seg => ({ key: seg.key, color: seg.color, count: desglose?.[seg.key] ?? 0 }))
+        .filter(c => c.count > 0)
+        .sort((a, b) => b.count - a.count);
+
+    return (
+        <div className="rpt-card rpt-card--calidad" style={{ borderTop: `3px solid ${color}` }}>
+            <div className="rpt-card-body">
+                <div className="rpt-card-icon" style={{ background: color + '18', color }}>
+                    <FontAwesomeIcon icon={icon} />
+                </div>
+                <div className="rpt-card-data">
+                    <span className="rpt-card-value">{value ?? '—'}</span>
+                    <span className="rpt-card-label">{label}</span>
+                </div>
+            </div>
+            {chips.length > 0 && (
+                <div className="rpt-desglose">
+                    {chips.map(c => (
+                        <span key={c.key} className="rpt-chip" style={{ borderLeft: `3px solid ${c.color}` }}>
+                            <span className="rpt-chip-label">{c.key}:</span>
+                            {' '}
+                            <span className="rpt-chip-val">{c.count.toLocaleString('es-PE')}</span>
+                        </span>
+                    ))}
+                </div>
+            )}
+            <BtnDescargar dlKey={dlKey} descargando={descargando} value={value} onClick={onDescargar} />
+        </div>
+    );
+};
+
 const Reportes = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -132,7 +165,9 @@ const Reportes = () => {
 
     const {
         porSegmento, sinLineas, porOperador,
-        sinContactosAutorizados, sinTelefono, sinCorreo,
+        sinContactosAutorizados, sinContactosDesglose,
+        sinTelefono,             sinTelefonoDesglose,
+        sinCorreo,               sinCorreoDesglose,
         porEstado, asignadasSinTipificar, fichasSinOportunidades, fichasEnFunnel,
     } = data || {};
 
@@ -203,30 +238,33 @@ const Reportes = () => {
                     {/* ── BLOQUE 2: Calidad de datos ───────────────────────── */}
                     <div className="rpt-seccion">
                         <h2>Calidad de datos</h2>
-                        <div className="rpt-grid">
-                            <Tarjeta
+                        <div className="rpt-grid rpt-grid--calidad">
+                            <TarjetaCalidad
                                 label="Sin contacto autorizado"
                                 value={sinContactosAutorizados ?? 0}
                                 color="#c62828"
                                 icon={faUsers}
+                                desglose={sinContactosDesglose}
                                 dlKey="sinContactos"
                                 descargando={descargando}
                                 onDescargar={() => descargar('sinContactos', null, 'Sin_contacto_autorizado')}
                             />
-                            <Tarjeta
+                            <TarjetaCalidad
                                 label="Sin teléfono"
                                 value={sinTelefono ?? 0}
                                 color="#e65100"
                                 icon={faPhone}
+                                desglose={sinTelefonoDesglose}
                                 dlKey="sinTelefono"
                                 descargando={descargando}
                                 onDescargar={() => descargar('sinTelefono', null, 'Sin_telefono')}
                             />
-                            <Tarjeta
+                            <TarjetaCalidad
                                 label="Sin correo"
                                 value={sinCorreo ?? 0}
                                 color="#f57f17"
                                 icon={faEnvelope}
+                                desglose={sinCorreoDesglose}
                                 dlKey="sinCorreo"
                                 descargando={descargando}
                                 onDescargar={() => descargar('sinCorreo', null, 'Sin_correo')}

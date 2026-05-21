@@ -43,6 +43,28 @@
 .rpt-grid--op {
     grid-template-columns: repeat(4, 1fr);
 }
+.rpt-grid--calidad {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* Desglose por segmento (Bloque 2) */
+.rpt-desglose {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.rpt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 10px;
+    background: #f0f0f0;
+    white-space: nowrap;
+}
+.rpt-chip-label { color: #888; font-weight: 500; }
+.rpt-chip-val   { font-weight: 700; color: #1a1a2e; }
 @media (max-width: 720px) {
     .rpt-grid--op { grid-template-columns: repeat(2, 1fr); }
 }

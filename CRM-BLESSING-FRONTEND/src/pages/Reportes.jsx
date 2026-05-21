@@ -164,7 +164,7 @@ const Reportes = () => {
         setOpSel(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
     const {
-        porSegmento, sinLineas, porOperador,
+        porSegmento, sinLineas, sinLineasDesglose, porOperador,
         sinContactosAutorizados, sinContactosDesglose,
         sinTelefono,             sinTelefonoDesglose,
         sinCorreo,               sinCorreoDesglose,
@@ -202,17 +202,23 @@ const Reportes = () => {
                             ))}
                         </div>
 
-                        <p className="rpt-sub-label">Sin líneas activas</p>
-                        <div className="rpt-grid rpt-grid--sm">
-                            <Tarjeta
-                                label="Empresas con 0 líneas"
-                                value={sinLineas ?? 0}
-                                color="#c62828"
-                                icon={faMobileAlt}
-                                dlKey="sinLineas"
-                                descargando={descargando}
-                                onDescargar={() => descargar('sinLineas', null, 'Sin_lineas')}
-                            />
+                        <p className="rpt-sub-label">
+                            Sin líneas activas
+                            <span className="rpt-hint"> — total: {sinLineas ?? 0}</span>
+                        </p>
+                        <div className="rpt-grid">
+                            {SEGMENTOS.map(seg => (
+                                <Tarjeta
+                                    key={seg.key}
+                                    label={seg.key}
+                                    value={sinLineasDesglose?.[seg.key] ?? 0}
+                                    color="#c62828"
+                                    icon={faMobileAlt}
+                                    dlKey={`sinLineas_${seg.key}`}
+                                    descargando={descargando}
+                                    onDescargar={() => descargar('sinLineas', seg.key, `Sin_lineas_${seg.key}`)}
+                                />
+                            ))}
                         </div>
 
                         <p className="rpt-sub-label">

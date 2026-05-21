@@ -27,6 +27,19 @@ const fmtDesglose = (arr) => {
     return obj;
 };
 
+const REGEX_SEGMENTO = {
+    'Pyme':         { 'salesforce.segmento': { $regex: '^pyme$',     $options: 'i' } },
+    'Micro':        { 'salesforce.segmento': { $regex: '^micro',     $options: 'i' } },
+    'Mayores':      { 'salesforce.segmento': { $regex: '^mayores$',  $options: 'i' } },
+    'Empresas':     { 'salesforce.segmento': { $regex: '^empresas$', $options: 'i' } },
+    'Gobierno':     { 'salesforce.segmento': { $regex: '^gobierno$', $options: 'i' } },
+    'Sin segmento': { $or: [
+        { 'salesforce.segmento': null },
+        { 'salesforce.segmento': { $regex: '^n/a$', $options: 'i' } },
+        { 'salesforce.segmento': '' },
+    ]},
+};
+
 // GET /api/reportes-bd/metricas
 router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) => {
     try {
@@ -37,6 +50,7 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
         const [
             porSegmento,
             sinLineas,
+            sinLineasDesgloseRaw,
             porOperadorRaw,
             porEstadoRaw,
             rucsConContactoReciente,
@@ -52,8 +66,14 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
                 { $sort: { count: -1 } },
             ]),
 
-            // 2. Sin líneas (osiptel.total === 0)
+            // 2. Sin líneas — total
             EmpresaV2.countDocuments({ 'osiptel.total': 0 }),
+
+            // 2b. Sin líneas — desglose por segmento
+            EmpresaV2.aggregate([
+                { $match: { 'osiptel.total': 0 } },
+                { $group: { _id: SEGMENTO_SWITCH, count: { $sum: 1 } } },
+            ]),
 
             // 3. Por operador dominante
             EmpresaV2.aggregate([
@@ -163,6 +183,7 @@ router.get('/metricas', verifyToken, verifyRole('sistemas'), async (req, res) =>
         res.json({
             porSegmento: segmentos,
             sinLineas,
+            sinLineasDesglose: fmtDesglose(sinLineasDesgloseRaw),
             porOperador: operadores,
             sinContactosAutorizados: sinContactosTotal,
             sinContactosDesglose:    fmtDesglose(sinContactosDesglose),
@@ -221,25 +242,18 @@ router.get('/descargar', verifyToken, verifyRole('sistemas'), async (req, res) =
         });
 
         if (tipo === 'segmento') {
-            const REGEX_SEGMENTO = {
-                'Pyme':        { 'salesforce.segmento': { $regex: '^pyme$',     $options: 'i' } },
-                'Micro':       { 'salesforce.segmento': { $regex: '^micro',     $options: 'i' } },
-                'Mayores':     { 'salesforce.segmento': { $regex: '^mayores$',  $options: 'i' } },
-                'Empresas':    { 'salesforce.segmento': { $regex: '^empresas$', $options: 'i' } },
-                'Gobierno':    { 'salesforce.segmento': { $regex: '^gobierno$', $options: 'i' } },
-                'Sin segmento': { $or: [
-                    { 'salesforce.segmento': null },
-                    { 'salesforce.segmento': { $regex: '^n/a$', $options: 'i' } },
-                    { 'salesforce.segmento': '' },
-                ]},
-            };
             const query = REGEX_SEGMENTO[valor] ?? REGEX_SEGMENTO['Sin segmento'];
             const docs = await EmpresaV2.find(query, camposEmpresa).lean();
             return res.json(docs.map(fmtEmpresa));
         }
 
         if (tipo === 'sinLineas') {
-            const docs = await EmpresaV2.find({ 'osiptel.total': 0 }, camposEmpresa).lean();
+            const baseQuery = { 'osiptel.total': 0 };
+            if (valor) {
+                const segQuery = REGEX_SEGMENTO[valor] ?? REGEX_SEGMENTO['Sin segmento'];
+                Object.assign(baseQuery, segQuery);
+            }
+            const docs = await EmpresaV2.find(baseQuery, camposEmpresa).lean();
             return res.json(docs.map(fmtEmpresa));
         }
 

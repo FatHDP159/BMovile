@@ -37,6 +37,24 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const esAsesor = user?.rol_user === 'asesor';
 
+    const [sfLoading, setSfLoading] = useState(false);
+
+    const handleSalesforce = async () => {
+        setSfLoading(true);
+        try {
+            const res = await api.post('/salesforce/salesforce-login');
+            if (res.data?.success && res.data?.redirectUrl) {
+                window.open(res.data.redirectUrl, '_blank');
+            } else {
+                alert(res.data?.error || 'Error al conectar con Salesforce');
+            }
+        } catch (err) {
+            alert(err?.response?.data?.error || err.message || 'Error al conectar con Salesforce');
+        } finally {
+            setSfLoading(false);
+        }
+    };
+
     if (user?.rol_user === 'sistemas') {
         return <DashboardSistemas />;
     }
@@ -76,6 +94,27 @@ const Dashboard = () => {
             <div className="dashboard-page">
                 <div className="page-header">
                     <h1><FontAwesomeIcon icon={faChartLine} /> Dashboard</h1>
+                    <button
+                        onClick={handleSalesforce}
+                        disabled={sfLoading}
+                        style={{
+                            background: '#0070d2',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 16px',
+                            cursor: sfLoading ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                            opacity: sfLoading ? 0.7 : 1,
+                        }}
+                    >
+                        <FontAwesomeIcon icon={faCloud} />
+                        {sfLoading ? 'Conectando...' : 'Salesforce'}
+                    </button>
                 </div>
                 <p style={{ color: '#888', padding: 20 }}>Bienvenido, {user?.nombre_user}.</p>
             </div>
@@ -113,6 +152,27 @@ const Dashboard = () => {
                     <span>—</span>
                     <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
                 </div>
+                <button
+                    onClick={handleSalesforce}
+                    disabled={sfLoading}
+                    style={{
+                        background: '#0070d2',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        cursor: sfLoading ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        opacity: sfLoading ? 0.7 : 1,
+                    }}
+                >
+                    <FontAwesomeIcon icon={faCloud} />
+                    {sfLoading ? 'Conectando...' : 'Salesforce'}
+                </button>
             </div>
 
             {/* Sección 1 — Actividades del día */}

@@ -56,11 +56,11 @@ const Dashboard = () => {
     };
 
     if (user?.rol_user === 'sistemas') {
-        return <DashboardSistemas />;
+        return <DashboardSistemas sfLoading={sfLoading} handleSalesforce={handleSalesforce} />;
     }
 
     if (user?.rol_user === 'supervisor') {
-        return <DashboardSupervisor />;
+        return <DashboardSupervisor sfLoading={sfLoading} handleSalesforce={handleSalesforce} />;
     }
 
     const hoy = new Date();

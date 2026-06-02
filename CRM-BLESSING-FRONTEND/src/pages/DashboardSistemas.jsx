@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faChartLine, faClipboardList, faPercent, faHandshake,
-    faBullseye, faCheck, faFilter
+    faBullseye, faCheck, faFilter, faCloud
 } from '@fortawesome/free-solid-svg-icons';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -78,7 +78,7 @@ const AsesorSelector = ({ asesores, seleccionados, onChange }) => {
     );
 };
 
-const DashboardSistemas = () => {
+const DashboardSistemas = ({ sfLoading, handleSalesforce }) => {
     const hoy = new Date();
     const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
     const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -141,6 +141,27 @@ const DashboardSistemas = () => {
         <div className="dashboard-page">
             <div className="dash-header">
                 <div><h1><FontAwesomeIcon icon={faChartLine} /> Dashboard Sistemas</h1></div>
+                <button
+                    onClick={handleSalesforce}
+                    disabled={sfLoading}
+                    style={{
+                        background: '#0070d2',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        cursor: sfLoading ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        opacity: sfLoading ? 0.7 : 1,
+                    }}
+                >
+                    <FontAwesomeIcon icon={faCloud} />
+                    {sfLoading ? 'Conectando...' : 'Salesforce'}
+                </button>
             </div>
 
             {/* Filtros */}

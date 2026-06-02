@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faChartLine, faUsers, faTrophy, faDollarSign, faBuilding,
     faPercent, faCalendarAlt, faPhone, faHandshake, faPaperPlane,
-    faRotate, faExclamationTriangle
+    faRotate, faExclamationTriangle, faCloud
 } from '@fortawesome/free-solid-svg-icons';
 import {
     PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
@@ -43,7 +43,7 @@ const TIPOS_ACT = {
     seguimiento: { label: 'Seguimiento', icon: faRotate, color: '#c62828' },
 };
 
-const DashboardSupervisor = () => {
+const DashboardSupervisor = ({ sfLoading, handleSalesforce }) => {
     const navigate = useNavigate();
     const hoy = new Date();
     const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
@@ -123,6 +123,27 @@ const DashboardSupervisor = () => {
                     <span>—</span>
                     <input type="date" className="filter-select" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
                 </div>
+                <button
+                    onClick={handleSalesforce}
+                    disabled={sfLoading}
+                    style={{
+                        background: '#0070d2',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        cursor: sfLoading ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        opacity: sfLoading ? 0.7 : 1,
+                    }}
+                >
+                    <FontAwesomeIcon icon={faCloud} />
+                    {sfLoading ? 'Conectando...' : 'Salesforce'}
+                </button>
             </div>
 
             {/* Sección 1 — Métricas generales */}

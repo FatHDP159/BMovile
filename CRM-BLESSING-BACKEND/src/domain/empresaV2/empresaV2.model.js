@@ -73,5 +73,6 @@ empresaV2Schema.index({ estado_base: 1 });
 empresaV2Schema.index({ 'salesforce.segmento': 1 });
 empresaV2Schema.index({ 'asignacion.id_asesor': 1 });
 empresaV2Schema.index({ 'sunat.razon_social': 'text' });
+empresaV2Schema.index({ 'osiptel.total': 1 });
 
 module.exports = mongoose.model('EmpresaV2', empresaV2Schema, 'empresas_v2');

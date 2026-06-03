@@ -88,5 +88,9 @@ const fichaGestionSchema = new mongoose.Schema({
 fichaGestionSchema.index({ ruc: 1, 'asesor.id_asesor': 1, activa: 1 });
 fichaGestionSchema.index({ 'asesor.id_asesor': 1, activa: 1 });
 fichaGestionSchema.index({ ruc: 1, activa: 1 });
+fichaGestionSchema.index({ activa: 1, 'fechas.fecha_ultimo_contacto': -1 });
+fichaGestionSchema.index({ activa: 1, 'oportunidades.estado': 1 });
+fichaGestionSchema.index({ activa: 1, 'oportunidades.fecha_creacion': 1 });
+fichaGestionSchema.index({ activa: 1, 'interacciones.fecha': 1 });
 
 module.exports = mongoose.model('FichaGestion', fichaGestionSchema);

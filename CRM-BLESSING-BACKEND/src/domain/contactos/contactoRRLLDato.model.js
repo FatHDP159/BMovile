@@ -9,5 +9,6 @@ const contactoRRLLDatoSchema = new mongoose.Schema({
 
 contactoRRLLDatoSchema.index({ id_contacto: 1 });
 contactoRRLLDatoSchema.index({ id_contacto: 1, tipo: 1, valor: 1 }, { unique: true });
+contactoRRLLDatoSchema.index({ ruc: 1 });
 
 module.exports = mongoose.model('ContactoRRLLDato', contactoRRLLDatoSchema, 'contactos_rrll_datos');

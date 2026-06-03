@@ -9,5 +9,7 @@ const contactoAutorizadoDatoSchema = new mongoose.Schema({
 
 contactoAutorizadoDatoSchema.index({ id_contacto: 1 });
 contactoAutorizadoDatoSchema.index({ id_contacto: 1, tipo: 1, valor: 1 }, { unique: true });
+contactoAutorizadoDatoSchema.index({ ruc: 1 });
+contactoAutorizadoDatoSchema.index({ tipo: 1, valor: 1 });
 
 module.exports = mongoose.model('ContactoAutorizadoDato', contactoAutorizadoDatoSchema, 'contactos_autorizados_datos');

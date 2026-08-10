@@ -28,10 +28,10 @@ require('dotenv').config();
 const app = express();
 
 // --- MIDDLEWARES ---
-app.use(cors({ origin: '*', credentials: true }));
-app.use(express.json());
+app.use(cors());
+// app.use(cors({ origin: '*', credentials: true }));
 
-c
+app.use(express.json());
 
 // --- CONEXIÓN Y CRON ---
 connectDB();

@@ -28,8 +28,7 @@ require('dotenv').config();
 const app = express();
 
 // --- MIDDLEWARES ---
-app.use(cors());
-// app.use(cors({ origin: '*', credentials: true }));
+app.use(cors({ origin: '*', credentials: true }));
 
 app.use(express.json());
 

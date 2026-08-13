@@ -2,27 +2,28 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faClipboardList, faChevronLeft, faChevronRight, faEye,
-    faPhone, faIdCard, faBriefcase, faComment, faHistory, faBullseye
+    faPhone, faIdCard, faBriefcase, faComment, faHistory, faBullseye,
+    faDownload
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import './Usuarios.css';
 import './GestionesSupervisor.css';
 
 const TIPOS = [
-    { key: 'interesado',                  label: 'Cliente Interesado',    color: 'tipo-interesado' },
-    { key: 'cliente_claro',               label: 'Cliente Claro',         color: 'tipo-claro' },
-    { key: 'sin_contacto',                label: 'Sin Contacto',          color: 'tipo-sin-contacto' },
-    { key: 'con_deuda',                   label: 'Con Deuda',             color: 'tipo-deuda' },
-    { key: 'no_contesta',                 label: 'No Contesta',           color: 'tipo-no-contesta' },
-    { key: 'cliente_no_interesado',       label: 'Cliente No Interesado', color: 'tipo-no-interesado' },
-    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido',       color: 'tipo-sustento-valido' },
+    { key: 'interesado', label: 'Cliente Interesado', color: 'tipo-interesado' },
+    { key: 'cliente_claro', label: 'Cliente Claro', color: 'tipo-claro' },
+    { key: 'sin_contacto', label: 'Sin Contacto', color: 'tipo-sin-contacto' },
+    { key: 'con_deuda', label: 'Con Deuda', color: 'tipo-deuda' },
+    { key: 'no_contesta', label: 'No Contesta', color: 'tipo-no-contesta' },
+    { key: 'cliente_no_interesado', label: 'Cliente No Interesado', color: 'tipo-no-interesado' },
+    { key: 'empresa_con_sustento_valido', label: 'Sustento Válido', color: 'tipo-sustento-valido' },
 ];
 
 const ESTADOS_OPO = [
-    { key: 'Identificada',        color: '#ede7f6', text: '#4527a0' },
+    { key: 'Identificada', color: '#ede7f6', text: '#4527a0' },
     { key: 'Propuesta Entregada', color: '#fff8e1', text: '#f57f17' },
-    { key: 'Negociación',         color: '#e8f5e9', text: '#2e7d32' },
-    { key: 'Negociada Aprobada',  color: '#e3f2fd', text: '#1565c0' },
+    { key: 'Negociación', color: '#e8f5e9', text: '#2e7d32' },
+    { key: 'Negociada Aprobada', color: '#e3f2fd', text: '#1565c0' },
     { key: 'Negociada Rechazada', color: '#fce8e6', text: '#c62828' },
 ];
 
@@ -175,6 +176,129 @@ const GestionesSupervisor = () => {
     const [modalFicha, setModalFicha] = useState(null);
     const searchTimeout = useRef();
 
+    const handleDescargarCSV = async () => {
+        try {
+            const res = await api.get('/ficha-gestion', {
+                params: {
+                    busqueda,
+                    asesor: filtroAsesor,
+                    estado_general: filtroEstado,
+                    page: 1,
+                    limit: 100000
+                }
+            });
+
+            const fichasExport = res.data.fichas || [];
+            if (fichasExport.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+
+            const headers = [
+                'RUC', 'Razon Social', 'Segmento', 'Lineas Totales', 'Estado General',
+                'Asesor Asignado', 'DNI Asesor',
+                'Fecha Inicio Gestion', 'Fecha Ultimo Contacto', 'Fecha Cierre Ficha',
+                'Total Interacciones', 'Total Oportunidades',
+                'Ultima Interaccion - Fecha',
+                'Ultima Interaccion - Tipo',
+                'Ultima Interaccion - Comentario',
+                'Última Interaccion - Contacto Nombre',
+                'Última Interaccion - Contacto DNI',
+                'Última Interaccion - Contacto Telefono',
+                'Última Interaccion - Agregado Por',
+                'Opo Activa - Titulo',
+                'Opo Activa - Producto',
+                'Opo Activa - Cantidad',
+                'Opo Activa - Cargo Fijo (S/.)',
+                'Opo Activa - Estado',
+                'Opo Activa - Sustento',
+                'Opo Activa - Comentario',
+                'Opo Activa - Fecha Creacion',
+                'Opo Activa - Fecha Cierre Esperada',
+                'Opo Activa - Fecha Ganada',
+                'Opo Activa - Port. Entel',
+                'Opo Activa - Port. Claro',
+                'Opo Activa - Port. Movistar',
+                'Opo Activa - Port. Otros',
+                'Opo Activa - Port. Total',
+                'Historial de Interacciones Completo',
+                'Historial de Oportunidades Completo'
+            ];
+
+            const clean = (val) => {
+                if (val === undefined || val === null) return '""';
+                const str = String(val).replace(/"/g, '""').replace(/\r?\n|\r/g, ' '); // Escapar comillas dobles y saltos de línea
+                return `"${str}"`;
+            };
+
+            const rows = fichasExport.map(f => {
+                const ultimaInt = ultimaInteraccion(f);
+                const opo = opoMasAvanzada(f);
+
+                const histInteracciones = (f.interacciones || [])
+                    .map(i => `[${fmt(i.fecha)}] ${i.tipo.toUpperCase()}: ${i.comentario || 'sin comentario'} (Por: ${i.agregado_por?.nombre || '—'})`)
+                    .join(' | ');
+
+                const histOportunidades = (f.oportunidades || [])
+                    .map(o => `[Creacion: ${fmt(o.fecha_creacion)}] ${o.producto || 'sin producto'} - Cant: ${o.cantidad} - S/. ${o.cargo_fijo} (${o.estado})`)
+                    .join(' | ');
+
+                return [
+                    clean(f.ruc),
+                    clean(f.razon_social),
+                    clean(f.segmento || '—'),
+                    f.total_lineas || 0,
+                    clean(f.estado_general || '—'),
+                    clean(f.asesor?.id_asesor?.nombre_user || '—'),
+                    clean(f.asesor?.id_asesor?.dni_user || '—'),
+                    clean(fmt(f.fechas?.fecha_inicio)),
+                    clean(fmt(f.fechas?.fecha_ultimo_contacto)),
+                    clean(fmt(f.fechas?.fecha_cierre)),
+                    f.interacciones?.length || 0,
+                    f.oportunidades?.length || 0,
+                    clean(fmt(ultimaInt?.fecha)),
+                    clean(ultimaInt?.tipo || '—'),
+                    clean(ultimaInt?.comentario || '—'),
+                    clean(ultimaInt?.contacto?.nombre || '—'),
+                    clean(ultimaInt?.contacto?.dni || '—'),
+                    clean(ultimaInt?.contacto?.telefono || '—'),
+                    clean(ultimaInt?.agregado_por?.nombre || '—'),
+                    clean(opo?.titulo || '—'),
+                    clean(opo?.producto || '—'),
+                    opo?.cantidad || 0,
+                    opo?.cargo_fijo || 0,
+                    clean(opo?.estado || '—'),
+                    opo?.sustento ? '"SI"' : '"NO"',
+                    clean(opo?.comentario || '—'),
+                    clean(fmt(opo?.fecha_creacion)),
+                    clean(fmt(opo?.fecha_cierre_esperada)),
+                    clean(fmt(opo?.fecha_ganada)),
+                    opo?.operadores?.entel || 0,
+                    opo?.operadores?.claro || 0,
+                    opo?.operadores?.movistar || 0,
+                    opo?.operadores?.otros || 0,
+                    opo?.operadores?.total || 0,
+                    clean(histInteracciones),
+                    clean(histOportunidades)
+                ];
+            });
+
+            const csvContent = "\uFEFF" + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `reporte_gestiones_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error('Error al exportar CSV:', err);
+            alert('Hubo un error al intentar exportar las gestiones.');
+        }
+    };
+
     const cargar = useCallback(async (p = 1) => {
         setLoading(true);
         try {
@@ -232,6 +356,26 @@ const GestionesSupervisor = () => {
                     <option value="cerrado_perdido">Cerrado Perdido</option>
                     <option value="descartado">Descartado</option>
                 </select>
+                <button
+                    className="btn-primary"
+                    onClick={handleDescargarCSV}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        backgroundColor: '#2e7d32',
+                        borderColor: '#2e7d32',
+                        cursor: 'pointer',
+                        color: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid transparent',
+                        fontWeight: '500',
+                        fontSize: '14px'
+                    }}
+                >
+                    <FontAwesomeIcon icon={faDownload} /> Descargar CSV
+                </button>
             </div>
 
             <div className="table-container">

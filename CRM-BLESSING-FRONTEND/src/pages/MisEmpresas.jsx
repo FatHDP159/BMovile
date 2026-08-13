@@ -382,7 +382,7 @@ const EmpresaCard = ({ empresa, onTipificar, onVerRRLL, onVerDireccion, onVerHis
                         </span>
                         <button
                             onClick={() => onVerHistorial(empresa)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D2558', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', borderRadius: 4, opacity: 0.8 }}
+                            style={{ background: 'white', border: 'none', cursor: 'pointer', color: '#1D2558', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', borderRadius: 4, opacity: 0.8 }}
                         >
                             <FontAwesomeIcon icon={faEye} /> Ver historial
                         </button>

@@ -195,8 +195,9 @@ const GestionesSupervisor = () => {
             }
 
             const headers = [
-                'RUC', 'Razon Social', 'Segmento', 'Lineas Totales', 'Estado General',
-                'Asesor Asignado', 'DNI Asesor',
+                'RUC', 'Razon Social', 'Segmento', 'Lineas Totales',
+                'BD Origen - Lineas Claro', 'BD Origen - Lineas Movistar', 'BD Origen - Lineas Entel', 'BD Origen - Lineas Otros', 'BD Origen - Lineas Total',
+                'Estado General', 'Asesor Asignado', 'DNI Asesor',
                 'Fecha Inicio Gestion', 'Fecha Ultimo Contacto', 'Fecha Cierre Ficha',
                 'Total Interacciones', 'Total Oportunidades',
                 'Ultima Interaccion - Fecha',
@@ -248,6 +249,11 @@ const GestionesSupervisor = () => {
                     clean(f.razon_social),
                     clean(f.segmento || '—'),
                     f.total_lineas || 0,
+                    f.lineasOrigen?.claro || 0,
+                    f.lineasOrigen?.movistar || 0,
+                    f.lineasOrigen?.entel || 0,
+                    f.lineasOrigen?.otros || 0,
+                    f.lineasOrigen?.total || 0,
                     clean(f.estado_general || '—'),
                     clean(f.asesor?.id_asesor?.nombre_user || '—'),
                     clean(f.asesor?.id_asesor?.dni_user || '—'),

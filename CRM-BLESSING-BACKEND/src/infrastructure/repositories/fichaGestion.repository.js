@@ -151,10 +151,35 @@ const fichaGestionRepository = {
 
         const skip = (page - 1) * limit;
         const total = await FichaGestion.countDocuments(filtro);
-        const fichas = await FichaGestion.find(filtro)
+        const fichasDb = await FichaGestion.find(filtro)
             .populate('asesor.id_asesor', 'nombre_user dni_user')
             .skip(skip).limit(limit)
             .sort({ 'fechas.fecha_ultimo_contacto': -1 });
+
+        // Enriquecer con líneas por operador originales de la base de datos
+        const rucs = fichasDb.map(f => f.ruc);
+        const [empresasV2, empresasLegacy] = await Promise.all([
+            EmpresaV2.find({ ruc: { $in: rucs } }).select('ruc osiptel').lean(),
+            BdGeneral.find({ ruc: { $in: rucs } }).select('ruc lineas').lean(),
+        ]);
+
+        const mapaV2 = new Map(empresasV2.map(e => [e.ruc, e.osiptel]));
+        const mapaLegacy = new Map(empresasLegacy.map(e => [e.ruc, e.lineas]));
+
+        const fichas = fichasDb.map(f => {
+            const obj = f.toObject();
+            const osiptel = mapaV2.get(f.ruc);
+            const lineas = mapaLegacy.get(f.ruc);
+            
+            obj.lineasOrigen = {
+                claro: osiptel?.claro || lineas?.claro || 0,
+                movistar: osiptel?.movistar || lineas?.movistar || 0,
+                entel: osiptel?.entel || lineas?.entel || 0,
+                otros: osiptel?.otros || lineas?.otros || 0,
+                total: osiptel?.total || lineas?.total || 0,
+            };
+            return obj;
+        });
 
         return { fichas, total, page, totalPages: Math.ceil(total / limit) };
     },
